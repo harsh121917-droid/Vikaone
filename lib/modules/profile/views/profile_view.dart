@@ -707,6 +707,32 @@ class _MenuSection extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _QuickCard(
+                  icon: Icons.account_balance_wallet_rounded,
+                  label: 'Wallet',
+                  subtitle: 'Add / manage money',
+                  color: const Color(0xFF3B82F6),
+                  dark: dark,
+                  onTap: () => Get.toNamed(AppRoutes.wallet),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _QuickCard(
+                  icon: Icons.account_balance_rounded,
+                  label: 'Bank Accounts',
+                  subtitle: 'Withdraw setup',
+                  color: const Color(0xFF2ecc71),
+                  dark: dark,
+                  onTap: () => Get.toNamed(AppRoutes.bankAccounts),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
           // Transactions — full-width card
           _QuickCard(
             icon: Icons.receipt_long_outlined,

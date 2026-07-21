@@ -2,14 +2,16 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:real_estate/data/repositories/gold_repository.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/controllers/theme_controller.dart';
+import 'package:real_estate/modules/digi_gold/controllers/digi_gold_controller.dart';
+import 'package:real_estate/modules/wallet/controllers/wallet_controller.dart';
+import 'transaction_detail_view.dart';
 
-// ─── Static data (replace with API later) ────────────────────────────────────
-const double _RATE = 7309.0; // ₹ per gram
-const double _GST_PCT = 3.0; // % — no making charges
-const double _JAR_SAVED = 2.568; // grams saved so far
-const double _JAR_TARGET = 10.0; // grams target
+// Jar target is just a personal savings-goal marker (not financial data),
+// kept local — everything else below (balance, rate, history) is real API data.
+const double _JAR_TARGET = 10.0; // grams goal
 
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 class DigiGoldSavingsView extends StatefulWidget {
@@ -23,20 +25,11 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView>
   late final AnimationController _pulse;
   late final Animation<double> _scale;
 
-  // Auto-save state
+  // Auto-save state (UI only — no backend SIP endpoint exists yet)
   final _autoAmounts = [100, 500, 1000, 2000];
   int _selectedAutoAmt = 500;
   bool _autoEnabled = false;
   int _autoFreqIdx = 1; // 0=Daily 1=Weekly 2=Monthly
-
-  // History (dummy)
-  final _history = const [
-    _SavEntry(date: '24 May 2024', grams: 0.256, amt: 1823.58, type: 'manual'),
-    _SavEntry(date: '01 May 2024', grams: 0.100, amt: 703.50, type: 'auto'),
-    _SavEntry(date: '10 Apr 2024', grams: 0.500, amt: 3488.00, type: 'manual'),
-    _SavEntry(date: '01 Apr 2024', grams: 0.100, amt: 698.20, type: 'auto'),
-    _SavEntry(date: '15 Mar 2024', grams: 0.612, amt: 4200.00, type: 'manual'),
-  ];
 
   @override
   void initState() {
@@ -57,7 +50,8 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView>
     super.dispose();
   }
 
-  double get _pct => (_JAR_SAVED / _JAR_TARGET * 100).clamp(0, 100);
+  double get _jarSaved => GoldController.to.totalGrams;
+  double get _pct => (_jarSaved / _JAR_TARGET * 100).clamp(0, 100);
 
   @override
   Widget build(BuildContext context) {
@@ -128,8 +122,8 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView>
           physics: const BouncingScrollPhysics(),
           child: Column(
             children: [
-              _JarHero(pct: _pct, scale: _scale, dark: dark),
-              _StatsStrip(dark: dark),
+              _JarHero(pct: _pct, saved: _jarSaved, scale: _scale, dark: dark),
+              _StatsStrip(saved: _jarSaved, dark: dark),
               _AddGoldCard(dark: dark),
               _AutoSaveCard(
                 dark: dark,
@@ -141,7 +135,10 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView>
                 onAmt: (a) => setState(() => _selectedAutoAmt = a),
                 onFreq: (i) => setState(() => _autoFreqIdx = i),
               ),
-              _HistorySection(entries: _history, dark: dark),
+              _HistorySection(
+                entries: GoldController.to.transactions,
+                dark: dark,
+              ),
               const SizedBox(height: 100),
             ],
           ),
@@ -154,8 +151,14 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView>
 
 // ─── Jar Hero ─────────────────────────────────────────────────────────────────
 class _JarHero extends StatelessWidget {
-  const _JarHero({required this.pct, required this.scale, required this.dark});
+  const _JarHero({
+    required this.pct,
+    required this.saved,
+    required this.scale,
+    required this.dark,
+  });
   final double pct;
+  final double saved;
   final Animation<double> scale;
   final bool dark;
 
@@ -195,9 +198,9 @@ class _JarHero extends StatelessWidget {
                   children: [
                     Transform.translate(
                       offset: const Offset(2, 3),
-                      child: const Text(
-                        '${_JAR_SAVED}g',
-                        style: TextStyle(
+                      child: Text(
+                        '${saved.toStringAsFixed(4)}g',
+                        style: const TextStyle(
                           color: Color(0x44D4A017),
                           fontSize: 36,
                           fontWeight: FontWeight.w900,
@@ -205,9 +208,9 @@ class _JarHero extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const Text(
-                      '${_JAR_SAVED}g',
-                      style: TextStyle(
+                    Text(
+                      '${saved.toStringAsFixed(4)}g',
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 36,
                         fontWeight: FontWeight.w900,
@@ -218,7 +221,7 @@ class _JarHero extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '₹${(_JAR_SAVED * _RATE).toStringAsFixed(2)}',
+                  '₹${(saved * GoldController.to.buyRate).toStringAsFixed(2)}',
                   style: const TextStyle(
                     color: Colors.white60,
                     fontSize: 14,
@@ -305,7 +308,7 @@ class _JarHero extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Target: ${_JAR_TARGET}g  ·  ${(_JAR_TARGET - _JAR_SAVED).toStringAsFixed(3)}g to go',
+                  'Target: ${_JAR_TARGET}g  ·  ${(_JAR_TARGET - saved).clamp(0, _JAR_TARGET).toStringAsFixed(3)}g to go',
                   style: const TextStyle(color: Colors.white38, fontSize: 11),
                 ),
               ],
@@ -337,7 +340,8 @@ class _JarHero extends StatelessWidget {
 
 // ─── Stats Strip ──────────────────────────────────────────────────────────────
 class _StatsStrip extends StatelessWidget {
-  const _StatsStrip({required this.dark});
+  const _StatsStrip({required this.saved, required this.dark});
+  final double saved;
   final bool dark;
   @override
   Widget build(BuildContext context) {
@@ -361,7 +365,7 @@ class _StatsStrip extends StatelessWidget {
       child: Row(
         children: [
           _SC(
-            '${_JAR_SAVED}g',
+            '${saved.toStringAsFixed(4)}g',
             'Total Saved',
             Icons.savings_outlined,
             const Color(0xFFD4A017),
@@ -369,7 +373,7 @@ class _StatsStrip extends StatelessWidget {
           ),
           _VD(dark),
           _SC(
-            '₹${(_JAR_SAVED * _RATE).toStringAsFixed(0)}',
+            '₹${(saved * GoldController.to.buyRate).toStringAsFixed(0)}',
             'Value',
             Icons.currency_rupee_rounded,
             const Color(0xFF2ecc71),
@@ -377,7 +381,7 @@ class _StatsStrip extends StatelessWidget {
           ),
           _VD(dark),
           _SC(
-            '${((_JAR_TARGET - _JAR_SAVED)).toStringAsFixed(3)}g',
+            '${(_JAR_TARGET - saved).clamp(0, _JAR_TARGET).toStringAsFixed(3)}g',
             'Remaining',
             Icons.pending_outlined,
             const Color(0xFF3B82F6),
@@ -795,7 +799,7 @@ class _AutoSaveCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      '₹$selectedAmt every ${_freqs[freqIdx]} → ${(selectedAmt / _RATE).toStringAsFixed(4)}g gold per ${_freqs[freqIdx].toLowerCase()}',
+                      '₹$selectedAmt every ${_freqs[freqIdx]} → ${(selectedAmt / GoldController.to.buyRate).toStringAsFixed(4)}g gold per ${_freqs[freqIdx].toLowerCase()}',
                       style: const TextStyle(
                         color: Color(0xFFD4A017),
                         fontSize: 12,
@@ -808,13 +812,16 @@ class _AutoSaveCard extends StatelessWidget {
             const SizedBox(height: 14),
 
             GestureDetector(
-              onTap: () => Get.snackbar(
-                'Auto Save Enabled 🎉',
-                '₹$selectedAmt will be saved ${_freqs[freqIdx].toLowerCase()} via Razorpay',
-                backgroundColor: const Color(0xFFD4A017),
-                colorText: Colors.black,
-                snackPosition: SnackPosition.BOTTOM,
-              ),
+              onTap: () {
+                WalletController.to.addMoney(selectedAmt.toDouble());
+                Get.snackbar(
+                  'Opening Razorpay...',
+                  'Recurring auto-charge on a schedule isn\'t wired yet — this charges ₹$selectedAmt now.',
+                  backgroundColor: const Color(0xFFAB47BC),
+                  colorText: Colors.white,
+                  snackPosition: SnackPosition.BOTTOM,
+                );
+              },
               child: Container(
                 height: 48,
                 width: double.infinity,
@@ -853,12 +860,13 @@ class _AutoSaveCard extends StatelessWidget {
 // ─── History Section ──────────────────────────────────────────────────────────
 class _HistorySection extends StatelessWidget {
   const _HistorySection({required this.entries, required this.dark});
-  final List<_SavEntry> entries;
+  final List<GoldTxnModel> entries;
   final bool dark;
 
   @override
   Widget build(BuildContext context) {
     final tp = dark ? const Color(0xFFEDF0FF) : const Color(0xFF1A2340);
+    final ts = dark ? const Color(0xFF8A95B0) : const Color(0xFF6B7280);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
       child: Column(
@@ -875,17 +883,19 @@ class _HistorySection extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              Text(
-                'View All',
-                style: const TextStyle(
-                  color: Color(0xFFD4A017),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
             ],
           ),
           const SizedBox(height: 14),
+          if (entries.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Center(
+                child: Text(
+                  'No purchases yet',
+                  style: TextStyle(color: ts, fontSize: 13),
+                ),
+              ),
+            ),
           ...entries.map((e) => _HistoryRow(entry: e, dark: dark)),
         ],
       ),
@@ -893,20 +903,9 @@ class _HistorySection extends StatelessWidget {
   }
 }
 
-class _SavEntry {
-  final String date, type;
-  final double grams, amt;
-  const _SavEntry({
-    required this.date,
-    required this.grams,
-    required this.amt,
-    required this.type,
-  });
-}
-
 class _HistoryRow extends StatelessWidget {
   const _HistoryRow({required this.entry, required this.dark});
-  final _SavEntry entry;
+  final GoldTxnModel entry;
   final bool dark;
 
   @override
@@ -915,78 +914,82 @@ class _HistoryRow extends StatelessWidget {
     final border = dark ? const Color(0xFF1A2B45) : const Color(0xFFE8DFC8);
     final tp = dark ? const Color(0xFFEDF0FF) : const Color(0xFF1A2340);
     final ts = dark ? const Color(0xFF8A95B0) : const Color(0xFF6B7280);
-    final isAuto = entry.type == 'auto';
+    final isBuy = entry.type == 'buy';
+    final dateStr = entry.createdAt.toString().substring(0, 16);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(dark ? 0.2 : 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: const Color(0xFFD4A017).withOpacity(0.12),
-              borderRadius: BorderRadius.circular(11),
-              border: Border.all(
-                color: const Color(0xFFD4A017).withOpacity(0.3),
+    return GestureDetector(
+      onTap: () => Get.to(() => TransactionDetailView(txn: entry)),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(dark ? 0.2 : 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: const Color(0xFFD4A017).withOpacity(0.12),
+                borderRadius: BorderRadius.circular(11),
+                border: Border.all(
+                  color: const Color(0xFFD4A017).withOpacity(0.3),
+                ),
+              ),
+              child: Icon(
+                isBuy ? Icons.add_rounded : Icons.remove_rounded,
+                color: const Color(0xFFD4A017),
+                size: 20,
               ),
             ),
-            child: Icon(
-              isAuto ? Icons.autorenew_rounded : Icons.add_rounded,
-              color: const Color(0xFFD4A017),
-              size: 20,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isBuy ? 'Gold Purchased' : 'Gold Sold',
+                    style: TextStyle(
+                      color: tp,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(dateStr, style: TextStyle(color: ts, fontSize: 11)),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  isAuto ? 'Auto Save' : 'Manual Save',
-                  style: TextStyle(
-                    color: tp,
+                  '${isBuy ? '+' : '-'}${entry.grams.toStringAsFixed(3)}g',
+                  style: const TextStyle(
+                    color: Color(0xFF2ecc71),
                     fontSize: 13,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: 2),
-                Text(entry.date, style: TextStyle(color: ts, fontSize: 11)),
+                Text(
+                  '₹${entry.totalAmt.toStringAsFixed(2)}',
+                  style: TextStyle(color: ts, fontSize: 11),
+                ),
               ],
             ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '+${entry.grams.toStringAsFixed(3)}g',
-                style: const TextStyle(
-                  color: Color(0xFF2ecc71),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                '₹${entry.amt.toStringAsFixed(2)}',
-                style: TextStyle(color: ts, fontSize: 11),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1091,13 +1094,15 @@ class _SaveGoldSheetState extends State<_SaveGoldSheet> {
     _slider = 500;
   }
 
-  double get _amt => _byAmt
+  double get _total => _byAmt
       ? (double.tryParse(_ctrl.text) ?? 0)
-      : (double.tryParse(_ctrl.text) ?? 0) * _RATE;
-  double get _grams =>
-      _byAmt ? _amt / _RATE : (double.tryParse(_ctrl.text) ?? 0);
-  double get _gst => _amt * _GST / 100;
-  double get _total => _amt + _gst;
+      : (double.tryParse(_ctrl.text) ?? 0) *
+            GoldController.to.buyRate *
+            (1 + _GST / 100);
+  double get _amt => _total / (1 + _GST / 100); // gold value (pre-GST)
+  double get _grams => _amt / GoldController.to.buyRate;
+  double get _gst => _total - _amt;
+  bool _saving = false;
 
   @override
   Widget build(BuildContext context) {
@@ -1152,7 +1157,7 @@ class _SaveGoldSheetState extends State<_SaveGoldSheet> {
                   ),
                   const Spacer(),
                   Text(
-                    '24K  ·  ₹${_RATE.toStringAsFixed(0)}/g',
+                    '24K  ·  ₹${GoldController.to.buyRate.toStringAsFixed(0)}/g',
                     style: const TextStyle(
                       color: Color(0xFFD4A017),
                       fontSize: 12,
@@ -1355,7 +1360,7 @@ class _SaveGoldSheetState extends State<_SaveGoldSheet> {
               const SizedBox(height: 18),
 
               // You save box
-              if (_amt > 0) ...[
+              if (_total > 0) ...[
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
@@ -1447,32 +1452,29 @@ class _SaveGoldSheetState extends State<_SaveGoldSheet> {
 
               // Save button
               GestureDetector(
-                onTap: _amt >= 100
-                    ? () {
-                        Get.back();
-                        Get.snackbar(
-                          'Gold Saved! 🏺',
-                          '${_grams.toStringAsFixed(4)}g added to your jar  (₹${_total.toStringAsFixed(2)} incl. 3% GST)',
-                          backgroundColor: const Color(0xFFD4A017),
-                          colorText: Colors.black,
-                          snackPosition: SnackPosition.BOTTOM,
-                          duration: const Duration(seconds: 3),
+                onTap: _total >= 100 && !_saving
+                    ? () async {
+                        setState(() => _saving = true);
+                        final ok = await WalletController.to.buyGold(
+                          amount: _amt,
                         );
+                        setState(() => _saving = false);
+                        if (ok) Get.back();
                       }
                     : null,
                 child: Container(
                   height: 54,
                   decoration: BoxDecoration(
-                    gradient: _amt >= 100
+                    gradient: _total >= 100
                         ? const LinearGradient(
                             colors: [Color(0xFFD4A017), Color(0xFFFFD700)],
                           )
                         : null,
-                    color: _amt >= 100
+                    color: _total >= 100
                         ? null
                         : const Color(0xFFD4A017).withOpacity(0.3),
                     borderRadius: BorderRadius.circular(16),
-                    boxShadow: _amt >= 100
+                    boxShadow: _total >= 100
                         ? [
                             BoxShadow(
                               color: const Color(0xFFD4A017).withOpacity(0.5),
@@ -1484,11 +1486,13 @@ class _SaveGoldSheetState extends State<_SaveGoldSheet> {
                   ),
                   child: Center(
                     child: Text(
-                      _amt >= 100
+                      _saving
+                          ? 'Processing...'
+                          : _total >= 100
                           ? 'Save Gold — ₹${_total.toStringAsFixed(2)}'
                           : 'Min ₹100',
                       style: TextStyle(
-                        color: _amt >= 100
+                        color: _total >= 100
                             ? const Color(0xFF3D2B00)
                             : Colors.white38,
                         fontSize: 15,

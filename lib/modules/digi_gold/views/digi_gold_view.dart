@@ -9,6 +9,10 @@ import '../../../core/theme/controllers/theme_controller.dart';
 import 'package:real_estate/modules/digi_gold/controllers/digi_gold_controller.dart';
 import 'package:real_estate/modules/wallet/controllers/wallet_controller.dart';
 import '../../../modules/auth/controllers/auth_controller.dart';
+import '../../home/controllers/main_shell_controller.dart';
+import 'transaction_detail_view.dart';
+import 'package:real_estate/data/repositories/coin_repository.dart';
+import 'coin_redeem_view.dart';
 
 // ─── Static gold data (replace with API later) ───────────────────────────────
 class GoldData {
@@ -101,6 +105,7 @@ class _DigiGoldViewState extends State<DigiGoldView>
                 _QuickActions(dark: dark),
                 // Savings Jar — tap to open full savings screen
                 _SavingsJarPreview(dark: dark),
+                _JewellerySection(dark: dark),
                 _SecurityBadge(dark: dark),
                 _RecentTransactions(dark: dark),
                 const SizedBox(height: 100),
@@ -164,6 +169,26 @@ class _HeroSection extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(22, 16, 22, 0),
               child: Row(
                 children: [
+                  GestureDetector(
+                    onTap: () => Get.find<MainShellController>().openDrawer(),
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      margin: const EdgeInsets.only(right: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.12),
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.menu_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                  ),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -363,7 +388,7 @@ class _HeroSection extends StatelessWidget {
                                 ),
                                 SizedBox(width: 4),
                                 Text(
-                                  '+₹${(GoldController.to.rate.value?.change24h ?? 0)} (${(GoldController.to.rate.value?.changePct ?? 0)}%)',
+                                  '${(GoldController.to.rate.value?.change24h ?? 0) >= 0 ? '+' : ''}₹${(GoldController.to.rate.value?.change24h ?? 0).toStringAsFixed(2)} (${(GoldController.to.rate.value?.changePct ?? 0).toStringAsFixed(2)}%)',
                                   style: TextStyle(
                                     color: Color(0xFF2ecc71),
                                     fontSize: 11,
@@ -602,6 +627,19 @@ class _RateStrip extends StatelessWidget {
   final bool dark;
   final Animation<double> flashAnim;
 
+  String _fmtUpdated(DateTime? dt) {
+    if (dt == null) return 'Rate unavailable';
+    final now = DateTime.now();
+    final sameDay =
+        dt.year == now.year && dt.month == now.month && dt.day == now.day;
+    final h = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+    final ampm = dt.hour < 12 ? 'AM' : 'PM';
+    final time = '$h:${dt.minute.toString().padLeft(2, '0')} $ampm';
+    return sameDay
+        ? 'Updated today, $time'
+        : 'Updated ${dt.day}/${dt.month}, $time';
+  }
+
   @override
   Widget build(BuildContext context) {
     final cardBg = dark ? const Color(0xFF0E1626) : Colors.white;
@@ -693,8 +731,8 @@ class _RateStrip extends StatelessWidget {
                       color: const Color(0xFF2ecc71).withOpacity(0.12),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Text(
-                      '+₹96.00 (1.23%) ↑',
+                    child: Text(
+                      '${(GoldController.to.rate.value?.change24h ?? 0) >= 0 ? '+' : ''}₹${(GoldController.to.rate.value?.change24h ?? 0).toStringAsFixed(2)} (${(GoldController.to.rate.value?.changePct ?? 0).toStringAsFixed(2)}%) ↑',
                       style: TextStyle(
                         color: Color(0xFF2ecc71),
                         fontSize: 11,
@@ -706,7 +744,7 @@ class _RateStrip extends StatelessWidget {
               ),
               const SizedBox(height: 3),
               Text(
-                'Updated today, 09:30 AM',
+                _fmtUpdated(GoldController.to.rate.value?.updatedAt),
                 style: TextStyle(
                   color: dark
                       ? const Color(0xFF4A5568)
@@ -777,17 +815,17 @@ class _QuickActions extends StatelessWidget {
                 color: const Color(0xFF2ecc71),
                 onTap: () => Get.toNamed(AppRoutes.myGold),
               ),
+            ],
+          ),
+          SizedBox(height: 30),
+          Row(
+            children: [
               _QA(
                 icon: Icons.autorenew_rounded,
-                label: 'Auto Save',
+                label: 'SIP ',
                 color: const Color(0xFFAB47BC),
                 isNew: true,
-                onTap: () => Get.snackbar(
-                  'Coming Soon',
-                  'Auto Save feature launching soon!',
-                  backgroundColor: const Color(0xFFAB47BC),
-                  colorText: Colors.white,
-                ),
+                onTap: () => Get.toNamed(AppRoutes.digiGoldSavings),
               ),
             ],
           ),
@@ -1068,6 +1106,227 @@ class _SavingsJarPreview extends StatelessWidget {
   }
 }
 
+// ─── Jewellery / Coins Section ───────────────────────────────────────────────
+class _JewellerySection extends StatefulWidget {
+  const _JewellerySection({required this.dark});
+  final bool dark;
+  @override
+  State<_JewellerySection> createState() => _JewellerySectionState();
+}
+
+class _JewellerySectionState extends State<_JewellerySection> {
+  final _repo = CoinRepository();
+  List<CoinModel>? _coins;
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final coins = await _repo.getCoins();
+      if (mounted)
+        setState(() {
+          _coins = coins;
+          _loading = false;
+        });
+    } catch (_) {
+      if (mounted)
+        setState(() {
+          _error = 'Could not load coins';
+          _loading = false;
+        });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = widget.dark;
+    final tp = dark ? const Color(0xFFEDF0FF) : const Color(0xFF1A2340);
+    final ts = dark ? const Color(0xFF8A95B0) : const Color(0xFF6B7280);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 0, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Gold & Silver Coins',
+                  style: TextStyle(
+                    color: tp,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                Text(
+                  'Redeem your gold',
+                  style: TextStyle(color: ts, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          if (_loading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(
+                child: SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    color: Color(0xFFD4A017),
+                    strokeWidth: 2,
+                  ),
+                ),
+              ),
+            )
+          else if (_error != null)
+            Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: Text(_error!, style: TextStyle(color: ts, fontSize: 12)),
+            )
+          else
+            SizedBox(
+              height: 168,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.only(right: 16),
+                itemCount: _coins!.length,
+                itemBuilder: (_, i) => _CoinCard(coin: _coins![i], dark: dark),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CoinCard extends StatelessWidget {
+  const _CoinCard({required this.coin, required this.dark});
+  final CoinModel coin;
+  final bool dark;
+
+  @override
+  Widget build(BuildContext context) {
+    final cardBg = dark ? const Color(0xFF0E1626) : Colors.white;
+    final border = dark ? const Color(0xFF1A2B45) : const Color(0xFFE8DFC8);
+    final tp = dark ? const Color(0xFFEDF0FF) : const Color(0xFF1A2340);
+    final ts = dark ? const Color(0xFF8A95B0) : const Color(0xFF6B7280);
+    final isGold = coin.metal == 'gold';
+    final metalColor = isGold
+        ? const Color(0xFFD4A017)
+        : const Color(0xFF8A95B0);
+
+    return GestureDetector(
+      onTap: coin.redeemable
+          ? () => Get.to(() => CoinRedeemView(coin: coin))
+          : () => Get.snackbar(
+              'Coming Soon',
+              'Silver coin redemption isn\'t live yet',
+              backgroundColor: const Color(0xFF8A95B0),
+              colorText: Colors.white,
+              snackPosition: SnackPosition.BOTTOM,
+            ),
+      child: Container(
+        width: 140,
+        margin: const EdgeInsets.only(right: 12),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(dark ? 0.25 : 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: isGold
+                      ? [const Color(0xFFD4A017), const Color(0xFFFFD700)]
+                      : [const Color(0xFFB0B8C4), const Color(0xFFE0E4E8)],
+                ),
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Text(
+                  isGold ? 'Au' : 'Ag',
+                  style: TextStyle(
+                    color: isGold
+                        ? const Color(0xFF3D2B00)
+                        : const Color(0xFF1A2340),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              coin.name,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: tp,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              '₹${coin.totalValue.toStringAsFixed(0)}',
+              style: TextStyle(
+                color: metalColor,
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              decoration: BoxDecoration(
+                color: coin.redeemable
+                    ? metalColor.withOpacity(0.12)
+                    : ts.withOpacity(0.10),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                coin.redeemable ? 'Redeem' : 'Coming Soon',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: coin.redeemable ? metalColor : ts,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ─── Security Badge ───────────────────────────────────────────────────────────
 class _SecurityBadge extends StatelessWidget {
   const _SecurityBadge({required this.dark});
@@ -1202,6 +1461,7 @@ class _RecentTransactions extends StatelessWidget {
                 amt: amt,
               ),
               dark: dark,
+              onTap: () => Get.to(() => TransactionDetailView(txn: t)),
             );
           }),
         ],
@@ -1222,9 +1482,10 @@ class _TxnItem {
 }
 
 class _TxnRow extends StatelessWidget {
-  const _TxnRow({required this.item, required this.dark});
+  const _TxnRow({required this.item, required this.dark, this.onTap});
   final _TxnItem item;
   final bool dark;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -1235,78 +1496,81 @@ class _TxnRow extends StatelessWidget {
     final isBuy = item.type == 'buy';
     final gramColor = isBuy ? const Color(0xFF2ecc71) : const Color(0xFFe74c3c);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(dark ? 0.25 : 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: const Color(0xFFD4A017).withOpacity(0.12),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: const Color(0xFFD4A017).withOpacity(0.3),
-              ),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(dark ? 0.25 : 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
             ),
-            child: Center(
-              child: Text(
-                'Au',
-                style: TextStyle(
-                  color: const Color(0xFFD4A017),
-                  fontSize: 15,
-                  fontWeight: FontWeight.w900,
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: const Color(0xFFD4A017).withOpacity(0.12),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: const Color(0xFFD4A017).withOpacity(0.3),
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  'Au',
+                  style: TextStyle(
+                    color: const Color(0xFFD4A017),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.label,
+                    style: TextStyle(
+                      color: tp,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(item.sub, style: TextStyle(color: ts, fontSize: 11)),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  item.label,
+                  item.grams,
                   style: TextStyle(
-                    color: tp,
+                    color: gramColor,
                     fontSize: 13,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: 2),
-                Text(item.sub, style: TextStyle(color: ts, fontSize: 11)),
+                Text(item.amt, style: TextStyle(color: ts, fontSize: 11)),
               ],
             ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                item.grams,
-                style: TextStyle(
-                  color: gramColor,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(item.amt, style: TextStyle(color: ts, fontSize: 11)),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

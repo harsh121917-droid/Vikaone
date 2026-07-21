@@ -23,6 +23,8 @@ import '../modules/digi_gold/views/sell_gold_view.dart';
 import '../modules/digi_gold/views/my_gold_view.dart';
 import '../modules/wallet/views/wallet_view.dart';
 import '../modules/wallet/views/bank_accounts_view.dart';
+import '../modules/wallet/views/add_bank_account_view.dart';
+import '../modules/wallet/controllers/wallet_controller.dart';
 
 abstract class AppRoutes {
   static const login          = '/login';
@@ -47,6 +49,7 @@ abstract class AppRoutes {
   static const myGold            = '/digi-gold/my-gold';
   static const wallet            = '/wallet';
   static const bankAccounts      = '/wallet/banks';
+  static const addBankAccount    = '/wallet/banks/add';
 }
 
 final appPages = [
@@ -64,9 +67,20 @@ final appPages = [
   GetPage(name: AppRoutes.security,       page: () => const SecuritySettingsView()),
   GetPage(name: AppRoutes.digiGold,        page: () => const DigiGoldView()),
   GetPage(name: AppRoutes.digiGoldSavings, page: () => const DigiGoldSavingsView()),
-  GetPage(name: AppRoutes.sellGold,        page: () => const SellGoldView()),
-  GetPage(name: AppRoutes.buyGold,         page: () => const BuyGoldView()),
+  GetPage(name: AppRoutes.sellGold,        page: () => const SellGoldView(), binding: BindingsBuilder(() {
+    if (!Get.isRegistered<WalletController>()) Get.put(WalletController());
+  })),
+  GetPage(name: AppRoutes.buyGold,         page: () => const BuyGoldView(), binding: BindingsBuilder(() {
+    if (!Get.isRegistered<WalletController>()) Get.put(WalletController());
+  })),
   GetPage(name: AppRoutes.myGold,          page: () => const MyGoldView()),
-  GetPage(name: AppRoutes.wallet,          page: () => const WalletView()),
-  GetPage(name: AppRoutes.bankAccounts,    page: () => const BankAccountsView()),
+  GetPage(name: AppRoutes.wallet,          page: () => const WalletView(), binding: BindingsBuilder(() {
+    if (!Get.isRegistered<WalletController>()) Get.put(WalletController());
+  })),
+  GetPage(name: AppRoutes.bankAccounts,    page: () => const BankAccountsView(), binding: BindingsBuilder(() {
+    if (!Get.isRegistered<WalletController>()) Get.put(WalletController());
+  })),
+  GetPage(name: AppRoutes.addBankAccount,  page: () => const AddBankAccountView(), binding: BindingsBuilder(() {
+    if (!Get.isRegistered<WalletController>()) Get.put(WalletController());
+  })),
 ];

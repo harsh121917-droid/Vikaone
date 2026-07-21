@@ -18,6 +18,7 @@ class MainShellView extends GetView<MainShellController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: controller.scaffoldKey,
       drawer: const _AppDrawer(),
       body: Obx(
         () => IndexedStack(

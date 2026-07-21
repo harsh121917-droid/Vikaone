@@ -2,7 +2,7 @@ import 'package:real_estate/core/network/api_client.dart';
 
 // ─── Models ───────────────────────────────────────────────────────────────────
 class WalletModel {
-  final double balance, lockedBalance, availableBalance;
+  final double balance, lockedBalance, availableBalance, pendingCredit;
   final double totalAdded, totalWithdrawn;
   final List<WalletTxnModel> transactions;
 
@@ -10,6 +10,7 @@ class WalletModel {
     required this.balance,
     required this.lockedBalance,
     required this.availableBalance,
+    required this.pendingCredit,
     required this.totalAdded,
     required this.totalWithdrawn,
     required this.transactions,
@@ -19,6 +20,7 @@ class WalletModel {
     balance: (j['balance'] ?? 0) * 1.0,
     lockedBalance: (j['lockedBalance'] ?? 0) * 1.0,
     availableBalance: (j['availableBalance'] ?? 0) * 1.0,
+    pendingCredit: (j['pendingCredit'] ?? 0) * 1.0,
     totalAdded: (j['totalAdded'] ?? 0) * 1.0,
     totalWithdrawn: (j['totalWithdrawn'] ?? 0) * 1.0,
     transactions: (j['transactions'] as List? ?? [])

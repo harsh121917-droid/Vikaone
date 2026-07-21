@@ -1,26 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:real_estate/modules/wallet/controllers/wallet_controller.dart';
+import 'package:real_estate/routes/app_routes.dart';
 import '../../../core/theme/controllers/theme_controller.dart';
-
-const _dummyBanks = [
-  _Bank(
-    id: '1',
-    name: 'HDFC Bank',
-    holder: 'Rahul Sharma',
-    acc: '••••••1234',
-    ifsc: 'HDFC0001234',
-    isDefault: true,
-  ),
-  _Bank(
-    id: '2',
-    name: 'SBI Bank',
-    holder: 'Rahul Sharma',
-    acc: '••••••5678',
-    ifsc: 'SBIN0001234',
-    isDefault: false,
-  ),
-];
 
 class BankAccountsView extends StatefulWidget {
   const BankAccountsView({super.key});
@@ -29,7 +12,7 @@ class BankAccountsView extends StatefulWidget {
 }
 
 class _BankAccountsViewState extends State<BankAccountsView> {
-  final _banks = List<_Bank>.from(_dummyBanks);
+  final _ctrl = WalletController.to;
 
   @override
   Widget build(BuildContext context) {
@@ -100,7 +83,17 @@ class _BankAccountsViewState extends State<BankAccountsView> {
             const SizedBox(height: 20),
 
             // Bank cards
-            ..._banks.map(
+            if (_ctrl.banks.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 30),
+                child: Center(
+                  child: Text(
+                    'No bank accounts added yet',
+                    style: TextStyle(color: ts, fontSize: 13),
+                  ),
+                ),
+              ),
+            ..._ctrl.banks.map(
               (b) => Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Container(
@@ -150,7 +143,7 @@ class _BankAccountsViewState extends State<BankAccountsView> {
                                 Row(
                                   children: [
                                     Text(
-                                      b.name,
+                                      b.bankName,
                                       style: TextStyle(
                                         color: tp,
                                         fontSize: 14,
@@ -186,7 +179,7 @@ class _BankAccountsViewState extends State<BankAccountsView> {
                                 ),
                                 const SizedBox(height: 3),
                                 Text(
-                                  b.holder,
+                                  b.accountHolder,
                                   style: TextStyle(color: ts, fontSize: 12),
                                 ),
                               ],
@@ -200,33 +193,21 @@ class _BankAccountsViewState extends State<BankAccountsView> {
                               color: ts,
                               size: 20,
                             ),
-                            onSelected: (v) {
+                            onSelected: (v) async {
                               if (v == 'default') {
-                                setState(() {
-                                  for (var bank in _banks)
-                                    bank = _Bank(
-                                      id: bank.id,
-                                      name: bank.name,
-                                      holder: bank.holder,
-                                      acc: bank.acc,
-                                      ifsc: bank.ifsc,
-                                      isDefault: bank.id == b.id,
-                                    );
-                                });
+                                await _ctrl.setDefaultBank(b.id);
                                 Get.snackbar(
                                   'Default Updated',
-                                  '${b.name} set as default',
+                                  '${b.bankName} set as default',
                                   backgroundColor: const Color(0xFFD4A017),
                                   colorText: Colors.black,
                                   snackPosition: SnackPosition.BOTTOM,
                                 );
                               } else if (v == 'delete') {
-                                setState(
-                                  () => _banks.removeWhere((x) => x.id == b.id),
-                                );
+                                await _ctrl.deleteBank(b.id);
                                 Get.snackbar(
                                   'Removed',
-                                  '${b.name} removed',
+                                  '${b.bankName} removed',
                                   snackPosition: SnackPosition.BOTTOM,
                                 );
                               }
@@ -275,7 +256,7 @@ class _BankAccountsViewState extends State<BankAccountsView> {
                       const SizedBox(height: 12),
                       Row(
                         children: [
-                          _BankDetail('A/c No.', b.acc, ts, tp),
+                          _BankDetail('A/c No.', b.maskedAcc, ts, tp),
                           _BankDetail('IFSC', b.ifsc, ts, tp),
                         ],
                       ),
@@ -287,11 +268,7 @@ class _BankAccountsViewState extends State<BankAccountsView> {
 
             // Add new
             GestureDetector(
-              onTap: () => Get.bottomSheet(
-                _AddBankSheet(dark: dark),
-                isScrollControlled: true,
-                backgroundColor: Colors.transparent,
-              ),
+              onTap: () => Get.toNamed(AppRoutes.addBankAccount),
               child: Container(
                 height: 58,
                 decoration: BoxDecoration(
@@ -341,334 +318,6 @@ class _BankAccountsViewState extends State<BankAccountsView> {
 }
 
 // ─── Add Bank Sheet ───────────────────────────────────────────────────────────
-class _AddBankSheet extends StatefulWidget {
-  const _AddBankSheet({required this.dark});
-  final bool dark;
-  @override
-  State<_AddBankSheet> createState() => _AddBankSheetState();
-}
-
-class _AddBankSheetState extends State<_AddBankSheet> {
-  final _holderCtrl = TextEditingController();
-  final _accCtrl = TextEditingController();
-  final _ifscCtrl = TextEditingController();
-  final _bankCtrl = TextEditingController();
-  String _accType = 'savings';
-  bool _saving = false;
-
-  bool get _valid =>
-      _holderCtrl.text.trim().length > 2 &&
-      _accCtrl.text.trim().length >= 8 &&
-      _ifscCtrl.text.trim().length == 11 &&
-      _bankCtrl.text.trim().length > 2;
-
-  @override
-  Widget build(BuildContext context) {
-    final dark = widget.dark;
-    final bg = dark ? const Color(0xFF0E1626) : Colors.white;
-    final tp = dark ? const Color(0xFFEDF0FF) : const Color(0xFF1A2340);
-    final ts = dark ? const Color(0xFF8A95B0) : const Color(0xFF6B7280);
-    final border = dark ? const Color(0xFF1A2B45) : const Color(0xFFE2E6F0);
-
-    return Container(
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 14, 20, 36),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: border,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => Get.back(),
-                    child: Icon(Icons.arrow_back_rounded, color: tp, size: 22),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Add Bank Account',
-                    style: TextStyle(
-                      color: tp,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 22),
-
-              _Field(
-                'Account Holder Name',
-                _holderCtrl,
-                tp,
-                ts,
-                border,
-                dark,
-                hint: 'As per bank records',
-              ),
-              _Field(
-                'Bank Name',
-                _bankCtrl,
-                tp,
-                ts,
-                border,
-                dark,
-                hint: 'e.g. HDFC Bank',
-              ),
-              _Field(
-                'Account Number',
-                _accCtrl,
-                tp,
-                ts,
-                border,
-                dark,
-                hint: 'Enter account number',
-                type: TextInputType.number,
-              ),
-              _Field(
-                'IFSC Code',
-                _ifscCtrl,
-                tp,
-                ts,
-                border,
-                dark,
-                hint: 'e.g. HDFC0001234',
-                onChanged: (v) => setState(() {
-                  _ifscCtrl.text = v.toUpperCase();
-                  _ifscCtrl.selection = TextSelection.fromPosition(
-                    TextPosition(offset: _ifscCtrl.text.length),
-                  );
-                }),
-              ),
-
-              // Account type
-              const SizedBox(height: 4),
-              Text(
-                'Account Type',
-                style: TextStyle(
-                  color: ts,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.4,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: ['savings', 'current'].map((t) {
-                  final active = _accType == t;
-                  return Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 3),
-                      child: GestureDetector(
-                        onTap: () {
-                          HapticFeedback.selectionClick();
-                          setState(() => _accType = t);
-                        },
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 180),
-                          padding: const EdgeInsets.symmetric(vertical: 11),
-                          decoration: BoxDecoration(
-                            gradient: active
-                                ? const LinearGradient(
-                                    colors: [
-                                      Color(0xFFD4A017),
-                                      Color(0xFFFFD700),
-                                    ],
-                                  )
-                                : null,
-                            color: active
-                                ? null
-                                : (dark
-                                      ? const Color(0xFF0A0F1E)
-                                      : const Color(0xFFF8F5F0)),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: active ? Colors.transparent : border,
-                            ),
-                          ),
-                          child: Text(
-                            t[0].toUpperCase() + t.substring(1),
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: active ? Colors.black : ts,
-                              fontSize: 13,
-                              fontWeight: active
-                                  ? FontWeight.w800
-                                  : FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 20),
-
-              // Save button
-              GestureDetector(
-                onTap: _valid && !_saving
-                    ? () async {
-                        setState(() => _saving = true);
-                        await Future.delayed(const Duration(milliseconds: 800));
-                        Get.back();
-                        Get.snackbar(
-                          'Bank Added! 🏦',
-                          'Your bank account has been saved',
-                          backgroundColor: const Color(0xFF2ecc71),
-                          colorText: Colors.white,
-                          snackPosition: SnackPosition.BOTTOM,
-                        );
-                      }
-                    : null,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  height: 54,
-                  decoration: BoxDecoration(
-                    gradient: _valid
-                        ? const LinearGradient(
-                            colors: [Color(0xFFD4A017), Color(0xFFFFD700)],
-                          )
-                        : null,
-                    color: _valid
-                        ? null
-                        : const Color(0xFFD4A017).withOpacity(0.25),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: _valid
-                        ? [
-                            BoxShadow(
-                              color: const Color(0xFFD4A017).withOpacity(0.45),
-                              blurRadius: 14,
-                              offset: const Offset(0, 5),
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: Center(
-                    child: _saving
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : Text(
-                            _valid ? 'Save Bank Account' : 'Fill all fields',
-                            style: TextStyle(
-                              color: _valid ? Colors.black : Colors.white38,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-Widget _Field(
-  String label,
-  TextEditingController ctrl,
-  Color tp,
-  Color ts,
-  Color border,
-  bool dark, {
-  String hint = '',
-  TextInputType? type,
-  ValueChanged<String>? onChanged,
-}) {
-  return Padding(
-    padding: const EdgeInsets.only(bottom: 14),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: ts,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.4,
-          ),
-        ),
-        const SizedBox(height: 6),
-        TextField(
-          controller: ctrl,
-          keyboardType: type,
-          onChanged: onChanged,
-          style: TextStyle(
-            color: tp,
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-          ),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(color: ts.withOpacity(0.5), fontSize: 14),
-            filled: true,
-            fillColor: dark ? const Color(0xFF0A0F1E) : const Color(0xFFF8F5F0),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: border),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(
-                color: Color(0xFFD4A017),
-                width: 1.5,
-              ),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-class _Bank {
-  final String id, name, holder, acc, ifsc;
-  final bool isDefault;
-  const _Bank({
-    required this.id,
-    required this.name,
-    required this.holder,
-    required this.acc,
-    required this.ifsc,
-    required this.isDefault,
-  });
-}
-
 class _BankDetail extends StatelessWidget {
   const _BankDetail(this.label, this.value, this.ts, this.tp);
   final String label, value;

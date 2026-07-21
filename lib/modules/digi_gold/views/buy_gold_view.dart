@@ -20,25 +20,46 @@ class _BuyGoldViewState extends State<BuyGoldView> {
   bool _byAmount = true;
   double _slider = 1000;
   final _ctrl = TextEditingController(text: '1000');
-  int _payIdx = 0; // 0=UPI 1=Card 2=NetBanking
 
-  double get _amount => _byAmount
+  double get _total => _byAmount
       ? (double.tryParse(_ctrl.text) ?? 0)
-      : (double.tryParse(_ctrl.text) ?? 0) * GoldController.to.buyRate;
+      : (double.tryParse(_ctrl.text) ?? 0) *
+            GoldController.to.buyRate *
+            (1 + _GST_PCT / 100);
 
-  double get _grams => _byAmount
-      ? _amount / GoldController.to.buyRate
-      : (double.tryParse(_ctrl.text) ?? 0);
+  double get _amount => _total / (1 + _GST_PCT / 100); // gold value (pre-GST)
 
-  double get _gst => _amount * _GST_PCT / 100;
-  double get _total => _amount + _gst;
-  bool get _valid => _amount >= 100.0;
+  double get _grams => _amount / GoldController.to.buyRate;
+
+  double get _gst => _total - _amount;
+  double get _walletBal =>
+      WalletController.to.wallet.value?.availableBalance ?? 0;
+  bool get _hasEnoughBalance => _walletBal >= _total;
+  bool get _valid => _amount >= 100.0 && _hasEnoughBalance;
 
   void _setAmt(double amt) => setState(() {
     _byAmount = true;
     _slider = amt.clamp(100.0, 100000.0);
     _ctrl.text = amt.toStringAsFixed(0);
   });
+
+  void _setGrams(double grams) => setState(() {
+    _byAmount = false;
+    _ctrl.text = grams.toStringAsFixed(3);
+  });
+
+  String _fmtUpdated(DateTime? dt) {
+    if (dt == null) return 'Rate unavailable';
+    final now = DateTime.now();
+    final sameDay =
+        dt.year == now.year && dt.month == now.month && dt.day == now.day;
+    final h = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+    final ampm = dt.hour < 12 ? 'AM' : 'PM';
+    final time = '$h:${dt.minute.toString().padLeft(2, '0')} $ampm';
+    return sameDay
+        ? 'Updated today, $time'
+        : 'Updated ${dt.day}/${dt.month}, $time';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -181,8 +202,8 @@ class _BuyGoldViewState extends State<BuyGoldView> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        const Text(
-                          '+₹96.00 (1.33%) ↑',
+                        Text(
+                          '${(GoldController.to.rate.value?.change24h ?? 0) >= 0 ? '+' : ''}₹${(GoldController.to.rate.value?.change24h ?? 0).toStringAsFixed(2)} (${(GoldController.to.rate.value?.changePct ?? 0).toStringAsFixed(2)}%) ↑',
                           style: TextStyle(
                             color: Color(0xFF2ecc71),
                             fontSize: 11,
@@ -190,7 +211,7 @@ class _BuyGoldViewState extends State<BuyGoldView> {
                           ),
                         ),
                         Text(
-                          'Updated today, 09:30 AM',
+                          _fmtUpdated(GoldController.to.rate.value?.updatedAt),
                           style: TextStyle(color: ts, fontSize: 10),
                         ),
                       ],
@@ -365,7 +386,7 @@ class _BuyGoldViewState extends State<BuyGoldView> {
                   child: Slider(
                     value: _slider.clamp(100.0, 100000.0),
                     min: 100.0,
-                    max: 100000.0,
+                    max: 10000.0,
                     onChanged: (v) => setState(() {
                       _slider = v;
                       _ctrl.text = v.toStringAsFixed(0);
@@ -380,7 +401,7 @@ class _BuyGoldViewState extends State<BuyGoldView> {
                       style: TextStyle(color: ts, fontSize: 11),
                     ),
                     Text(
-                      '₹${(100000.0 / 1000).toInt()}K',
+                      '₹${(10000.0 / 1000).toInt()}K',
                       style: TextStyle(color: ts, fontSize: 11),
                     ),
                   ],
@@ -389,54 +410,61 @@ class _BuyGoldViewState extends State<BuyGoldView> {
               ] else
                 const SizedBox(height: 12),
 
-              // Quick chips
+              // Quick chips — amount or weight suggestions depending on mode
               Row(
-                children: [500, 1000, 2000, 5000].map((a) {
-                  final active = _byAmount && _ctrl.text == '$a';
-                  return Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 3),
-                      child: GestureDetector(
-                        onTap: () => _setAmt(a.toDouble()),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 180),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          decoration: BoxDecoration(
-                            gradient: active
-                                ? const LinearGradient(
-                                    colors: [
-                                      Color(0xFFD4A017),
-                                      Color(0xFFFFD700),
-                                    ],
-                                  )
-                                : null,
-                            color: active ? null : subBg,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: active ? Colors.transparent : border,
-                            ),
-                          ),
-                          child: Text(
-                            '+₹$a',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: active
-                                  ? const Color(0xFF3D2B00)
-                                  : const Color(0xFFD4A017),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w800,
+                children: (_byAmount ? [500, 1000, 2000, 5000] : [1, 2, 5, 10])
+                    .map((a) {
+                      final label = _byAmount ? '+₹$a' : '+${a}g';
+                      final active = _byAmount
+                          ? (_ctrl.text == '$a')
+                          : (double.tryParse(_ctrl.text) == a.toDouble());
+                      return Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 3),
+                          child: GestureDetector(
+                            onTap: () => _byAmount
+                                ? _setAmt(a.toDouble())
+                                : _setGrams(a.toDouble()),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                gradient: active
+                                    ? const LinearGradient(
+                                        colors: [
+                                          Color(0xFFD4A017),
+                                          Color(0xFFFFD700),
+                                        ],
+                                      )
+                                    : null,
+                                color: active ? null : subBg,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: active ? Colors.transparent : border,
+                                ),
+                              ),
+                              child: Text(
+                                label,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: active
+                                      ? const Color(0xFF3D2B00)
+                                      : const Color(0xFFD4A017),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ),
-                  );
-                }).toList(),
+                      );
+                    })
+                    .toList(),
               ),
               const SizedBox(height: 20),
 
               // ── You will get ─────────────────────────────────────────────────
-              if (_valid) ...[
+              if (_amount > 0) ...[
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -556,9 +584,9 @@ class _BuyGoldViewState extends State<BuyGoldView> {
                 ),
                 const SizedBox(height: 20),
 
-                // ── Payment method ───────────────────────────────────────────
+                // ── Paying from Wallet ────────────────────────────────────────
                 Text(
-                  'Select Payment Method',
+                  'Paying From',
                   style: TextStyle(
                     color: tp,
                     fontSize: 14,
@@ -566,97 +594,116 @@ class _BuyGoldViewState extends State<BuyGoldView> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                ...[
-                  (
-                    Icons.phone_android_rounded,
-                    'UPI',
-                    'Pay using any UPI app',
-                    'assets/upi',
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 14,
                   ),
-                  (
-                    Icons.credit_card_rounded,
-                    'Debit / Credit Card',
-                    'Visa, Mastercard, Rupay',
-                    '',
+                  decoration: BoxDecoration(
+                    color: _hasEnoughBalance
+                        ? const Color(
+                            0xFF2ecc71,
+                          ).withOpacity(dark ? 0.10 : 0.06)
+                        : const Color(
+                            0xFFe74c3c,
+                          ).withOpacity(dark ? 0.10 : 0.06),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: _hasEnoughBalance
+                          ? const Color(0xFF2ecc71).withOpacity(0.35)
+                          : const Color(0xFFe74c3c).withOpacity(0.35),
+                      width: 1.2,
+                    ),
                   ),
-                  (
-                    Icons.account_balance_rounded,
-                    'Net Banking',
-                    'All major banks supported',
-                    '',
-                  ),
-                ].asMap().entries.map((e) {
-                  final active = _payIdx == e.key;
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: GestureDetector(
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        setState(() => _payIdx = e.key);
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 180),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 13,
-                        ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 42,
+                        height: 42,
                         decoration: BoxDecoration(
-                          color: active
-                              ? const Color(
-                                  0xFFD4A017,
-                                ).withOpacity(dark ? 0.12 : 0.06)
-                              : cardBg,
-                          borderRadius: BorderRadius.circular(14),
+                          color: const Color(0xFF3B82F6).withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: active ? const Color(0xFFD4A017) : border,
-                            width: active ? 1.5 : 1,
+                            color: const Color(0xFF3B82F6).withOpacity(0.3),
                           ),
                         ),
-                        child: Row(
+                        child: const Icon(
+                          Icons.account_balance_wallet_rounded,
+                          color: Color(0xFF3B82F6),
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(
-                              e.value.$1,
-                              color: active ? const Color(0xFFD4A017) : ts,
-                              size: 22,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    e.value.$2,
-                                    style: TextStyle(
-                                      color: active ? tp : tp,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                  Text(
-                                    e.value.$3,
-                                    style: TextStyle(color: ts, fontSize: 11),
-                                  ),
-                                ],
+                            Text(
+                              'App Wallet',
+                              style: TextStyle(
+                                color: tp,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
-                            if (active)
-                              const Icon(
-                                Icons.check_circle_rounded,
-                                color: Color(0xFFD4A017),
-                                size: 20,
-                              )
-                            else
-                              Icon(
-                                Icons.radio_button_unchecked_rounded,
-                                color: ts,
-                                size: 20,
-                              ),
+                            Text(
+                              'Available Balance: ₹${_walletBal.toStringAsFixed(2)}',
+                              style: TextStyle(color: ts, fontSize: 11),
+                            ),
                           ],
                         ),
                       ),
+                      Icon(
+                        _hasEnoughBalance
+                            ? Icons.check_circle_rounded
+                            : Icons.error_outline_rounded,
+                        color: _hasEnoughBalance
+                            ? const Color(0xFF2ecc71)
+                            : const Color(0xFFe74c3c),
+                        size: 22,
+                      ),
+                    ],
+                  ),
+                ),
+                if (!_hasEnoughBalance) ...[
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: () => Get.toNamed('/wallet'),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD4A017).withOpacity(0.10),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: const Color(0xFFD4A017).withOpacity(0.3),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(
+                            Icons.add_circle_outline_rounded,
+                            color: Color(0xFFD4A017),
+                            size: 16,
+                          ),
+                          SizedBox(width: 6),
+                          Text(
+                            'Add Money to Wallet',
+                            style: TextStyle(
+                              color: Color(0xFFD4A017),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  );
-                }),
+                  ),
+                ],
+                const SizedBox(height: 12),
                 const SizedBox(height: 12),
 
                 // Safety strip
@@ -744,17 +791,23 @@ class _BuyGoldViewState extends State<BuyGoldView> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: GestureDetector(
-                      onTap: _valid
+                      onTap: _valid && !WalletController.to.isBuying.value
+                          ? () async {
+                              HapticFeedback.mediumImpact();
+                              final ok = await WalletController.to.buyGold(
+                                amount: _amount,
+                              );
+                              if (ok) Get.back();
+                            }
+                          : (_amount >= 100.0 && !_hasEnoughBalance)
                           ? () {
                               HapticFeedback.mediumImpact();
-                              Get.back();
                               Get.snackbar(
-                                'Order Placed! 🥇',
-                                'Buying ${_grams.toStringAsFixed(4)}g · ₹${_total.toStringAsFixed(2)} (incl. 3% GST)',
-                                backgroundColor: const Color(0xFFD4A017),
-                                colorText: Colors.black,
+                                'Insufficient Balance',
+                                'Wallet has ₹${_walletBal.toStringAsFixed(2)}, need ₹${_total.toStringAsFixed(2)}. Add money first.',
+                                backgroundColor: const Color(0xFFe74c3c),
+                                colorText: Colors.white,
                                 snackPosition: SnackPosition.BOTTOM,
-                                duration: const Duration(seconds: 3),
                               );
                             }
                           : null,
@@ -807,8 +860,13 @@ class _BuyGoldViewState extends State<BuyGoldView> {
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
-                                    _valid
+                                    WalletController.to.isBuying.value
+                                        ? 'Processing...'
+                                        : _valid
                                         ? 'Buy Gold Securely'
+                                        : (_amount >= 100.0 &&
+                                              !_hasEnoughBalance)
+                                        ? 'Insufficient Balance'
                                         : 'Min ₹${100.0.toInt()}',
                                     style: TextStyle(
                                       color: _valid
@@ -822,7 +880,7 @@ class _BuyGoldViewState extends State<BuyGoldView> {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                'powered by Razorpay',
+                                'Wallet Balance: ₹${_walletBal.toStringAsFixed(0)}',
                                 style: TextStyle(
                                   color: _valid
                                       ? const Color(

@@ -14,6 +14,7 @@ class WalletController extends GetxController {
   // ── Observables ────────────────────────────────────────────────────────────
   final isLoading = false.obs;
   final isBuying = false.obs;
+  final isSelling = false.obs;
   final isAdding = false.obs;
   final isWithdrawing = false.obs;
   final wallet = Rxn<WalletModel>();
@@ -67,7 +68,7 @@ class WalletController extends GetxController {
       final user = Get.find<AuthService>().currentUser;
 
       final options = {
-        'key': data['order']['notes']['key'] ?? '',
+        'key': data['key'] ?? '',
         'amount': data['order']['amount'],
         'currency': 'INR',
         'order_id': data['order']['id'],
@@ -168,6 +169,7 @@ class WalletController extends GetxController {
   // ── 4. Sell Gold → Wallet ──────────────────────────────────────────────────
   Future<bool> sellGold(double grams) async {
     try {
+      isSelling.value = true;
       final data = await _repo.sellGoldToWallet(grams);
       await loadWallet();
       Get.snackbar(
@@ -187,6 +189,8 @@ class WalletController extends GetxController {
         snackPosition: SnackPosition.BOTTOM,
       );
       return false;
+    } finally {
+      isSelling.value = false;
     }
   }
 

@@ -169,8 +169,8 @@ class _MyGoldViewState extends State<MyGoldView>
                                   children: [
                                     Transform.translate(
                                       offset: const Offset(2, 3),
-                                      child: const Text(
-                                        '\${GoldController.to.totalGrams.toStringAsFixed(4)}g',
+                                      child: Text(
+                                        '${GoldController.to.totalGrams.toStringAsFixed(4)}g',
                                         style: TextStyle(
                                           color: Color(0x44D4A017),
                                           fontSize: 36,
@@ -179,8 +179,8 @@ class _MyGoldViewState extends State<MyGoldView>
                                         ),
                                       ),
                                     ),
-                                    const Text(
-                                      '\${GoldController.to.totalGrams.toStringAsFixed(4)}g',
+                                    Text(
+                                      '${GoldController.to.totalGrams.toStringAsFixed(4)}g',
                                       style: TextStyle(
                                         color: Color(0xFFD4A017),
                                         fontSize: 36,
@@ -271,7 +271,7 @@ class _MyGoldViewState extends State<MyGoldView>
                 child: Row(
                   children: [
                     _Stat(
-                      '\${GoldController.to.totalGrams.toStringAsFixed(4)}g',
+                      '${GoldController.to.totalGrams.toStringAsFixed(4)}g',
                       'Available Gold',
                       const Color(0xFFD4A017),
                       dark,
@@ -323,7 +323,7 @@ class _MyGoldViewState extends State<MyGoldView>
                     Row(
                       children: [
                         Text(
-                          'Gold Value Over Time',
+                          'Gold Value',
                           style: TextStyle(
                             color: tp,
                             fontSize: 14,
@@ -722,7 +722,7 @@ class _MyGoldViewState extends State<MyGoldView>
             children: [
               Expanded(
                 child: GestureDetector(
-                  onTap: () => Get.toNamed(AppRoutes.digiGold),
+                  onTap: () => Get.toNamed(AppRoutes.buyGold),
                   child: Container(
                     height: 50,
                     decoration: BoxDecoration(

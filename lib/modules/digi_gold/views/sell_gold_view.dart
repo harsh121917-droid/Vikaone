@@ -613,7 +613,7 @@ class _SellGoldViewState extends State<SellGoldView> {
 
                 // ── Payout to ──────────────────────────────────────────────────
                 Text(
-                  'Payout to',
+                  'Credited to',
                   style: TextStyle(
                     color: tp,
                     fontSize: 14,
@@ -641,7 +641,7 @@ class _SellGoldViewState extends State<SellGoldView> {
                           ),
                         ),
                         child: const Icon(
-                          Icons.account_balance_rounded,
+                          Icons.account_balance_wallet_rounded,
                           color: Color(0xFF3B82F6),
                           size: 22,
                         ),
@@ -652,7 +652,7 @@ class _SellGoldViewState extends State<SellGoldView> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'HDFC Bank',
+                              'App Wallet',
                               style: TextStyle(
                                 color: tp,
                                 fontSize: 13,
@@ -660,11 +660,11 @@ class _SellGoldViewState extends State<SellGoldView> {
                               ),
                             ),
                             Text(
-                              'A/c No. ●●●● ●●●● 1234',
+                              'Available in wallet after 24h',
                               style: TextStyle(color: ts, fontSize: 11),
                             ),
                             Text(
-                              'IFSC: HDFC0001234',
+                              'Then withdraw to bank anytime',
                               style: TextStyle(color: ts, fontSize: 11),
                             ),
                           ],
@@ -683,19 +683,13 @@ class _SellGoldViewState extends State<SellGoldView> {
                           ),
                         ),
                         child: const Text(
-                          'Preferred',
+                          '24h Lock',
                           style: TextStyle(
                             color: Color(0xFF2ecc71),
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        color: ts,
-                        size: 20,
                       ),
                     ],
                   ),
@@ -744,18 +738,15 @@ class _SellGoldViewState extends State<SellGoldView> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     GestureDetector(
-                      onTap: () {
-                        HapticFeedback.mediumImpact();
-                        Get.back();
-                        Get.snackbar(
-                          'Sell Order Placed! 💰',
-                          'Selling ${_gramsDisp.toStringAsFixed(3)}g → ₹${(_gramsDisp * GoldController.to.sellRate).toStringAsFixed(2)} to your bank',
-                          backgroundColor: const Color(0xFF3B82F6),
-                          colorText: Colors.white,
-                          snackPosition: SnackPosition.BOTTOM,
-                          duration: const Duration(seconds: 3),
-                        );
-                      },
+                      onTap: WalletController.to.isSelling.value
+                          ? null
+                          : () async {
+                              HapticFeedback.mediumImpact();
+                              final ok = await WalletController.to.sellGold(
+                                _gramsDisp,
+                              );
+                              if (ok) Get.back();
+                            },
                       child: Container(
                         height: 54,
                         decoration: BoxDecoration(
@@ -771,19 +762,21 @@ class _SellGoldViewState extends State<SellGoldView> {
                             ),
                           ],
                         ),
-                        child: const Center(
+                        child: Center(
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.lock_outline_rounded,
                                 color: Colors.white,
                                 size: 18,
                               ),
-                              SizedBox(width: 8),
+                              const SizedBox(width: 8),
                               Text(
-                                'Review Sell Order',
-                                style: TextStyle(
+                                WalletController.to.isSelling.value
+                                    ? 'Processing...'
+                                    : 'Sell to Wallet',
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 15,
                                   fontWeight: FontWeight.w900,
