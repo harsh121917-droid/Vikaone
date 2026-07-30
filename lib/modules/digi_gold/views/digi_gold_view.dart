@@ -37,7 +37,7 @@ class DigiGoldView extends StatefulWidget {
 }
 
 class _DigiGoldViewState extends State<DigiGoldView>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   late final AnimationController _jarPulse;
   late final AnimationController _shimmer;
   late final AnimationController _rateFlash;
@@ -48,6 +48,10 @@ class _DigiGoldViewState extends State<DigiGoldView>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Always pull fresh data the moment this screen mounts — the underlying
+    // controllers are app-wide singletons that don't auto-refresh otherwise.
+    _refreshAll();
     _jarPulse = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 3),
@@ -70,10 +74,29 @@ class _DigiGoldViewState extends State<DigiGoldView>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _jarPulse.dispose();
     _shimmer.dispose();
     _rateFlash.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _refreshAll();
+  }
+
+  void _refreshAll() async {
+    final gold = Get.find<GoldController>();
+    final wallet = Get.find<WalletController>();
+    await Future.wait([gold.loadAll(), wallet.loadAll()]);
+    // First-load network hiccups (slow API, brief connectivity blip) can
+    // leave the rate/balance unset — retry once automatically so the user
+    // never has to manually pull-to-refresh just to see real data.
+    if (gold.rate.value == null || gold.balance.value == null) {
+      await Future.delayed(const Duration(seconds: 2));
+      await Future.wait([gold.loadAll(), wallet.loadAll()]);
+    }
   }
 
   @override
@@ -86,8 +109,10 @@ class _DigiGoldViewState extends State<DigiGoldView>
         backgroundColor: bg,
         body: RefreshIndicator(
           onRefresh: () async {
-            await Future.delayed(const Duration(seconds: 1));
-            setState(() {});
+            await Future.wait([
+              Get.find<GoldController>().loadAll(),
+              Get.find<WalletController>().loadAll(),
+            ]);
           },
           color: const Color(0xFFD4A017),
           child: SingleChildScrollView(
@@ -356,7 +381,9 @@ class _HeroSection extends StatelessWidget {
                         ),
                         const SizedBox(height: 3),
                         Text(
-                          '₹${(GoldController.to.balance.value?.currentValue ?? 0).toStringAsFixed(2)}',
+                          GoldController.to.balance.value == null
+                              ? 'Loading...'
+                              : '₹${GoldController.to.balance.value!.currentValue.toStringAsFixed(2)}',
                           style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 14,
@@ -364,49 +391,57 @@ class _HeroSection extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 10),
-                        // Change badge
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 9,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF2ecc71).withOpacity(0.18),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: const Color(0xFF2ecc71).withOpacity(0.4),
+                        // Change badge — green if up, red if down
+                        Obx(() {
+                          final chg =
+                              GoldController.to.rate.value?.change24h ?? 0;
+                          final pct =
+                              GoldController.to.rate.value?.changePct ?? 0;
+                          final isUp = chg >= 0;
+                          final c = isUp
+                              ? const Color(0xFF2ecc71)
+                              : const Color(0xFFe74c3c);
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 9,
+                              vertical: 4,
                             ),
-                          ),
-                          child: Obx(
-                            () => Row(
+                            decoration: BoxDecoration(
+                              color: c.withOpacity(0.18),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: c.withOpacity(0.4)),
+                            ),
+                            child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(
-                                  Icons.trending_up_rounded,
-                                  color: Color(0xFF2ecc71),
+                                Icon(
+                                  isUp
+                                      ? Icons.trending_up_rounded
+                                      : Icons.trending_down_rounded,
+                                  color: c,
                                   size: 13,
                                 ),
-                                SizedBox(width: 4),
+                                const SizedBox(width: 4),
                                 Text(
-                                  '${(GoldController.to.rate.value?.change24h ?? 0) >= 0 ? '+' : ''}₹${(GoldController.to.rate.value?.change24h ?? 0).toStringAsFixed(2)} (${(GoldController.to.rate.value?.changePct ?? 0).toStringAsFixed(2)}%)',
+                                  '${isUp ? '+' : ''}₹${chg.toStringAsFixed(2)} (${pct.toStringAsFixed(2)}%)',
                                   style: TextStyle(
-                                    color: Color(0xFF2ecc71),
+                                    color: c,
                                     fontSize: 11,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
                                 const SizedBox(width: 4),
-                                Text(
+                                const Text(
                                   '24K',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: Colors.white38,
                                     fontSize: 10,
                                   ),
                                 ),
                               ],
                             ),
-                          ),
-                        ),
+                          );
+                        }),
                         const SizedBox(height: 16),
                         // Buy Gold CTA
                         GestureDetector(
@@ -679,13 +714,10 @@ class _RateStrip extends StatelessWidget {
               ],
             ),
             child: const Center(
-              child: Text(
-                'Au',
-                style: TextStyle(
-                  color: Color(0xFF3D2B00),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w900,
-                ),
+              child: Icon(
+                Icons.monetization_on_rounded,
+                color: Color(0xFF3D2B00),
+                size: 22,
               ),
             ),
           ),
@@ -704,14 +736,90 @@ class _RateStrip extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  '₹${GoldController.to.buyRate.toStringAsFixed(2)}/g',
-                  style: TextStyle(
-                    color: dark ? Colors.white : const Color(0xFF1A2340),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
+                Obx(() {
+                  final loaded = GoldController.to.rate.value != null;
+                  if (!loaded && GoldController.to.rateLoading.value) {
+                    return Row(
+                      children: [
+                        SizedBox(
+                          width: 12,
+                          height: 12,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: dark ? Colors.white54 : Colors.black38,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Loading rate...',
+                          style: TextStyle(
+                            color: dark
+                                ? const Color(0xFF8A95B0)
+                                : const Color(0xFF6B7280),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+                  if (!loaded) {
+                    return GestureDetector(
+                      onTap: () => GoldController.to.loadRate(),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.refresh_rounded,
+                            size: 14,
+                            color: const Color(0xFFe74c3c),
+                          ),
+                          const SizedBox(width: 4),
+                          const Text(
+                            'Tap to retry',
+                            style: TextStyle(
+                              color: Color(0xFFe74c3c),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  return Row(
+                    children: [
+                      Text(
+                        '₹${GoldController.to.buyRate.toStringAsFixed(2)}/g',
+                        style: TextStyle(
+                          color: dark ? Colors.white : const Color(0xFF1A2340),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      if (GoldController.to.rate.value?.isStale == true) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF39C12).withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            'delayed',
+                            style: TextStyle(
+                              color: Color(0xFFF39C12),
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  );
+                }),
               ],
             ),
           ),
@@ -720,27 +828,35 @@ class _RateStrip extends StatelessWidget {
             children: [
               AnimatedBuilder(
                 animation: flashAnim,
-                builder: (_, __) => Opacity(
-                  opacity: flashAnim.value,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2ecc71).withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      '${(GoldController.to.rate.value?.change24h ?? 0) >= 0 ? '+' : ''}₹${(GoldController.to.rate.value?.change24h ?? 0).toStringAsFixed(2)} (${(GoldController.to.rate.value?.changePct ?? 0).toStringAsFixed(2)}%) ↑',
-                      style: TextStyle(
-                        color: Color(0xFF2ecc71),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
+                builder: (_, __) {
+                  final chg = GoldController.to.rate.value?.change24h ?? 0;
+                  final pct = GoldController.to.rate.value?.changePct ?? 0;
+                  final isUp = chg >= 0;
+                  final c = isUp
+                      ? const Color(0xFF2ecc71)
+                      : const Color(0xFFe74c3c);
+                  return Opacity(
+                    opacity: flashAnim.value,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: c.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        '${isUp ? '+' : ''}₹${chg.toStringAsFixed(2)} (${pct.toStringAsFixed(2)}%) ${isUp ? '↑' : '↓'}',
+                        style: TextStyle(
+                          color: c,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
               const SizedBox(height: 3),
               Text(
@@ -826,6 +942,13 @@ class _QuickActions extends StatelessWidget {
                 color: const Color(0xFFAB47BC),
                 isNew: true,
                 onTap: () => Get.toNamed(AppRoutes.digiGoldSavings),
+              ),
+              _QA(
+                icon: Icons.workspace_premium_rounded,
+                label: 'Schemes',
+                color: const Color(0xFFD4A017),
+                isNew: true,
+                onTap: () => Get.toNamed(AppRoutes.goldSchemes),
               ),
             ],
           ),
@@ -1106,6 +1229,7 @@ class _SavingsJarPreview extends StatelessWidget {
   }
 }
 
+// ─── Security Badge ───────────────────────────────────────────────────────────
 // ─── Jewellery / Coins Section ───────────────────────────────────────────────
 class _JewellerySection extends StatefulWidget {
   const _JewellerySection({required this.dark});
@@ -1197,7 +1321,7 @@ class _JewellerySectionState extends State<_JewellerySection> {
             )
           else
             SizedBox(
-              height: 168,
+              height: 210,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.only(right: 16),
@@ -1226,6 +1350,7 @@ class _CoinCard extends StatelessWidget {
     final metalColor = isGold
         ? const Color(0xFFD4A017)
         : const Color(0xFF8A95B0);
+    final purityLabel = isGold ? '999.9' : '999.0';
 
     return GestureDetector(
       onTap: coin.redeemable
@@ -1238,12 +1363,18 @@ class _CoinCard extends StatelessWidget {
               snackPosition: SnackPosition.BOTTOM,
             ),
       child: Container(
-        width: 140,
+        width: 160,
         margin: const EdgeInsets.only(right: 12),
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.fromLTRB(14, 18, 14, 14),
         decoration: BoxDecoration(
-          color: cardBg,
-          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: dark
+                ? [cardBg, cardBg]
+                : [const Color(0xFFFFFBF0), Colors.white],
+          ),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(color: border),
           boxShadow: [
             BoxShadow(
@@ -1254,56 +1385,73 @@ class _CoinCard extends StatelessWidget {
           ],
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: isGold
-                      ? [const Color(0xFFD4A017), const Color(0xFFFFD700)]
-                      : [const Color(0xFFB0B8C4), const Color(0xFFE0E4E8)],
-                ),
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: Text(
-                  isGold ? 'Au' : 'Ag',
-                  style: TextStyle(
-                    color: isGold
-                        ? const Color(0xFF3D2B00)
-                        : const Color(0xFF1A2340),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
+            Image.asset(
+              isGold
+                  ? 'assets/images/gold_coin.png'
+                  : 'assets/images/silver_coin.png',
+              width: 64,
+              height: 64,
+              fit: BoxFit.contain,
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             Text(
               coin.name,
+              textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: tp,
-                fontSize: 12,
+                fontSize: 12.5,
                 fontWeight: FontWeight.w700,
               ),
             ),
-            const Spacer(),
+            const SizedBox(height: 6),
             Text(
               '₹${coin.totalValue.toStringAsFixed(0)}',
               style: TextStyle(
                 color: metalColor,
-                fontSize: 15,
+                fontSize: 16,
                 fontWeight: FontWeight.w900,
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 10),
+            // Container(
+            //   width: double.infinity,
+            //   padding: const EdgeInsets.symmetric(vertical: 6),
+            //   decoration: BoxDecoration(
+            //     color: dark
+            //         ? Colors.white.withOpacity(0.06)
+            //         : const Color(0xFFF8F5EE),
+            //     borderRadius: BorderRadius.circular(8),
+            //     border: Border.all(color: border),
+            //   ),
+            //   child: Row(
+            //     mainAxisAlignment: MainAxisAlignment.center,
+            //     children: [
+            //       Icon(
+            //         Icons.verified_rounded,
+            //         color: const Color(0xFF2ecc71),
+            //         size: 12,
+            //       ),
+            //       const SizedBox(width: 4),
+            //       Text(
+            //         'PURITY $purityLabel',
+            //         style: TextStyle(
+            //           color: ts,
+            //           fontSize: 8.5,
+            //           fontWeight: FontWeight.w700,
+            //           letterSpacing: 0.3,
+            //         ),
+            //       ),
+            //     ],
+            //   ),
+            // ),
+            // const SizedBox(height: 8),
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 6),
+              padding: const EdgeInsets.symmetric(vertical: 7),
               decoration: BoxDecoration(
                 color: coin.redeemable
                     ? metalColor.withOpacity(0.12)
@@ -1327,7 +1475,6 @@ class _CoinCard extends StatelessWidget {
   }
 }
 
-// ─── Security Badge ───────────────────────────────────────────────────────────
 class _SecurityBadge extends StatelessWidget {
   const _SecurityBadge({required this.dark});
   final bool dark;
@@ -1525,14 +1672,11 @@ class _TxnRow extends StatelessWidget {
                   color: const Color(0xFFD4A017).withOpacity(0.3),
                 ),
               ),
-              child: Center(
-                child: Text(
-                  'Au',
-                  style: TextStyle(
-                    color: const Color(0xFFD4A017),
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
-                  ),
+              child: const Center(
+                child: Icon(
+                  Icons.monetization_on_rounded,
+                  color: Color(0xFFD4A017),
+                  size: 22,
                 ),
               ),
             ),

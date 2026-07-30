@@ -27,9 +27,11 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView>
 
   // Auto-save state (UI only — no backend SIP endpoint exists yet)
   final _autoAmounts = [100, 500, 1000, 2000];
+  final _autoDurations = [3, 6, 12, 24]; // number of cycles
   int _selectedAutoAmt = 500;
   bool _autoEnabled = false;
   int _autoFreqIdx = 1; // 0=Daily 1=Weekly 2=Monthly
+  int _autoDuration = 12; // cycles
 
   @override
   void initState() {
@@ -129,11 +131,14 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView>
                 dark: dark,
                 enabled: _autoEnabled,
                 amounts: _autoAmounts,
+                durations: _autoDurations,
                 selectedAmt: _selectedAutoAmt,
                 freqIdx: _autoFreqIdx,
+                duration: _autoDuration,
                 onToggle: (v) => setState(() => _autoEnabled = v),
                 onAmt: (a) => setState(() => _selectedAutoAmt = a),
                 onFreq: (i) => setState(() => _autoFreqIdx = i),
+                onDuration: (d) => setState(() => _autoDuration = d),
               ),
               _HistorySection(
                 entries: GoldController.to.transactions,
@@ -564,18 +569,23 @@ class _AutoSaveCard extends StatelessWidget {
     required this.dark,
     required this.enabled,
     required this.amounts,
+    required this.durations,
     required this.selectedAmt,
     required this.freqIdx,
+    required this.duration,
     required this.onToggle,
     required this.onAmt,
     required this.onFreq,
+    required this.onDuration,
   });
   final bool dark, enabled;
   final List<int> amounts;
-  final int selectedAmt, freqIdx;
+  final List<int> durations;
+  final int selectedAmt, freqIdx, duration;
   final ValueChanged<bool> onToggle;
   final ValueChanged<int> onAmt;
   final ValueChanged<int> onFreq;
+  final ValueChanged<int> onDuration;
 
   static const _freqs = ['Daily', 'Weekly', 'Monthly'];
 
@@ -779,6 +789,155 @@ class _AutoSaveCard extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
+            // Duration (number of cycles)
+            Text(
+              'Duration',
+              style: TextStyle(
+                color: ts,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.4,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: durations.map((d) {
+                final active = d == duration;
+                return GestureDetector(
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    onDuration(d);
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 9,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: active
+                          ? const LinearGradient(
+                              colors: [Color(0xFFAB47BC), Color(0xFFCE93D8)],
+                            )
+                          : null,
+                      color: active
+                          ? null
+                          : (dark
+                                ? const Color(0xFF0A0F1E)
+                                : const Color(0xFFF5F0E8)),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: active ? Colors.transparent : border,
+                      ),
+                    ),
+                    child: Text(
+                      '$d ${_freqs[freqIdx]}s',
+                      style: TextStyle(
+                        color: active ? Colors.white : ts,
+                        fontSize: 13,
+                        fontWeight: active ? FontWeight.w800 : FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList()
+                ..add(
+                  GestureDetector(
+                    onTap: () async {
+                      HapticFeedback.selectionClick();
+                      final ctrl = TextEditingController(
+                        text: durations.contains(duration) ? '' : '$duration',
+                      );
+                      final result = await showDialog<int>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          backgroundColor: dark
+                              ? const Color(0xFF0E1626)
+                              : Colors.white,
+                          title: Text(
+                            'Custom Duration',
+                            style: TextStyle(color: tp),
+                          ),
+                          content: TextField(
+                            controller: ctrl,
+                            autofocus: true,
+                            keyboardType: TextInputType.number,
+                            style: TextStyle(color: tp),
+                            decoration: InputDecoration(
+                              hintText: 'Number of ${_freqs[freqIdx].toLowerCase()}s',
+                              hintStyle: TextStyle(color: ts),
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              child: const Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                final v = int.tryParse(ctrl.text.trim());
+                                if (v != null && v > 0) {
+                                  Navigator.pop(ctx, v);
+                                }
+                              },
+                              child: const Text('Set'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (result != null) onDuration(result);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 9,
+                      ),
+                      decoration: BoxDecoration(
+                        color: !durations.contains(duration)
+                            ? const Color(0xFFAB47BC)
+                            : (dark
+                                  ? const Color(0xFF0A0F1E)
+                                  : const Color(0xFFF5F0E8)),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: !durations.contains(duration)
+                              ? Colors.transparent
+                              : const Color(0xFFAB47BC).withOpacity(0.4),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.edit_rounded,
+                            size: 13,
+                            color: !durations.contains(duration)
+                                ? Colors.white
+                                : const Color(0xFFAB47BC),
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            !durations.contains(duration)
+                                ? '$duration ${_freqs[freqIdx]}s'
+                                : 'Custom',
+                            style: TextStyle(
+                              color: !durations.contains(duration)
+                                  ? Colors.white
+                                  : const Color(0xFFAB47BC),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+            ),
+            const SizedBox(height: 16),
+
             // Preview
             Container(
               padding: const EdgeInsets.all(14),
@@ -789,25 +948,61 @@ class _AutoSaveCard extends StatelessWidget {
                   color: const Color(0xFFD4A017).withOpacity(0.25),
                 ),
               ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.info_outline_rounded,
-                    color: Color(0xFFD4A017),
-                    size: 16,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '₹$selectedAmt every ${_freqs[freqIdx]} → ${(selectedAmt / GoldController.to.buyRate).toStringAsFixed(4)}g gold per ${_freqs[freqIdx].toLowerCase()}',
-                      style: const TextStyle(
-                        color: Color(0xFFD4A017),
-                        fontSize: 12,
-                      ),
+              child: Builder(builder: (_) {
+                const gstPct = 3.0;
+                // gold value net of GST — matches how the real buy call works
+                final gramsPerCycle =
+                    (selectedAmt / (1 + gstPct / 100)) / GoldController.to.buyRate;
+                final totalInvested = selectedAmt * duration;
+                final totalGrams = gramsPerCycle * duration;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.info_outline_rounded,
+                          color: Color(0xFFD4A017),
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '₹$selectedAmt every ${_freqs[freqIdx]} (incl. 3% GST) → ${gramsPerCycle.toStringAsFixed(4)}g per cycle',
+                            style: const TextStyle(
+                              color: Color(0xFFD4A017),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
+                    const SizedBox(height: 8),
+                    Divider(
+                      color: const Color(0xFFD4A017).withOpacity(0.2),
+                      height: 1,
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Over $duration ${_freqs[freqIdx].toLowerCase()}s',
+                          style: TextStyle(color: ts, fontSize: 11),
+                        ),
+                        Text(
+                          '₹${totalInvested.toStringAsFixed(0)} → ${totalGrams.toStringAsFixed(4)}g',
+                          style: const TextStyle(
+                            color: Color(0xFFD4A017),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                );
+              }),
             ),
             const SizedBox(height: 14),
 

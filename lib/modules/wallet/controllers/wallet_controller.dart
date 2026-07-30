@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:real_estate/core/services/auth_service.dart';
 import 'package:real_estate/data/repositories/wallet_repository.dart';
+import 'package:real_estate/modules/digi_gold/controllers/digi_gold_controller.dart';
 
 class WalletController extends GetxController {
   static WalletController get to => Get.find();
@@ -144,6 +145,7 @@ class WalletController extends GetxController {
       isBuying.value = true;
       final data = await _repo.buyGoldFromWallet(amount: amount, grams: grams);
       await loadWallet();
+      if (Get.isRegistered<GoldController>()) await GoldController.to.loadAll();
       Get.snackbar(
         'Gold Purchased! 🥇',
         '${(data['grams'] ?? 0).toStringAsFixed(4)}g added to your account',
@@ -172,6 +174,7 @@ class WalletController extends GetxController {
       isSelling.value = true;
       final data = await _repo.sellGoldToWallet(grams);
       await loadWallet();
+      if (Get.isRegistered<GoldController>()) await GoldController.to.loadAll();
       Get.snackbar(
         'Sell Order Placed! 💰',
         '₹${data['sellValue']} will credit to wallet in 24h',

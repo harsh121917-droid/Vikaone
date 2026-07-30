@@ -196,37 +196,55 @@ class _MyGoldViewState extends State<MyGoldView>
                             style: TextStyle(color: ts, fontSize: 13),
                           ),
                           const SizedBox(height: 10),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 9,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF2ecc71).withOpacity(0.10),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: const Color(0xFF2ecc71).withOpacity(0.3),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.trending_up_rounded,
-                                  color: Color(0xFF2ecc71),
-                                  size: 13,
+                          Builder(
+                            builder: (_) {
+                              final gain =
+                                  GoldController.to.balance.value?.gainLoss ??
+                                  0;
+                              final gainPct =
+                                  GoldController
+                                      .to
+                                      .balance
+                                      .value
+                                      ?.gainLossPct ??
+                                  0;
+                              final isUp = gain >= 0;
+                              final c = isUp
+                                  ? const Color(0xFF2ecc71)
+                                  : const Color(0xFFe74c3c);
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 9,
+                                  vertical: 4,
                                 ),
-                                SizedBox(width: 4),
-                                Text(
-                                  '+₹${(GoldController.to.balance.value?.gainLoss ?? 0)} (${(GoldController.to.balance.value?.gainLossPct ?? 0)}%)',
-                                  style: TextStyle(
-                                    color: Color(0xFF2ecc71),
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                                decoration: BoxDecoration(
+                                  color: c.withOpacity(0.10),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: c.withOpacity(0.3)),
                                 ),
-                              ],
-                            ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      isUp
+                                          ? Icons.trending_up_rounded
+                                          : Icons.trending_down_rounded,
+                                      color: c,
+                                      size: 13,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${isUp ? '+' : ''}₹${gain.toStringAsFixed(2)} (${gainPct.toStringAsFixed(2)}%)',
+                                      style: TextStyle(
+                                        color: c,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
                           ),
                           const SizedBox(height: 2),
                           Text(
@@ -284,11 +302,22 @@ class _MyGoldViewState extends State<MyGoldView>
                       dark,
                     ),
                     _VDivider(dark),
-                    _Stat(
-                      '+₹${(GoldController.to.balance.value?.gainLoss ?? 0)}\n${(GoldController.to.balance.value?.gainLossPct ?? 0)}%',
-                      'Gain / Loss',
-                      const Color(0xFF2ecc71),
-                      dark,
+                    Builder(
+                      builder: (_) {
+                        final gain =
+                            GoldController.to.balance.value?.gainLoss ?? 0;
+                        final gainPct =
+                            GoldController.to.balance.value?.gainLossPct ?? 0;
+                        final isUp = gain >= 0;
+                        return _Stat(
+                          '${isUp ? '+' : ''}₹${gain.toStringAsFixed(2)}\n${gainPct.toStringAsFixed(2)}%',
+                          'Gain / Loss',
+                          isUp
+                              ? const Color(0xFF2ecc71)
+                              : const Color(0xFFe74c3c),
+                          dark,
+                        );
+                      },
                     ),
                     _VDivider(dark),
                     _Stat(

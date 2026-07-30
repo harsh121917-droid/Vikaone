@@ -7,6 +7,8 @@ class GoldRateModel {
   final String purity;
   final double gstPct;
   final DateTime updatedAt;
+  final String source;
+  bool get isStale => source != 'goldapi.io';
 
   const GoldRateModel({
     required this.buyRate,
@@ -16,6 +18,7 @@ class GoldRateModel {
     required this.purity,
     required this.gstPct,
     required this.updatedAt,
+    this.source = 'goldapi.io',
   });
 
   factory GoldRateModel.fromJson(Map<String, dynamic> j) => GoldRateModel(
@@ -26,6 +29,7 @@ class GoldRateModel {
     purity: j['purity'] ?? '24K',
     gstPct: (j['gstPct'] ?? 3.0) * 1.0,
     updatedAt: DateTime.tryParse(j['updatedAt'] ?? '') ?? DateTime.now(),
+    source: j['source'] ?? 'goldapi.io',
   );
 
   String get formattedBuyRate => '₹${buyRate.toStringAsFixed(2)}/g';
@@ -115,6 +119,7 @@ class GoldBuyInitiateResult {
 
 class GoldTxnModel {
   final String id, type, status;
+  final String? invoiceNo;
   final double grams, ratePerGram, goldValue, gstAmt, totalAmt;
   final String? razorpayPaymentId, note;
   final DateTime createdAt;
@@ -129,12 +134,19 @@ class GoldTxnModel {
     required this.gstAmt,
     required this.totalAmt,
     required this.createdAt,
+    this.invoiceNo,
     this.razorpayPaymentId,
     this.note,
   });
 
+  /// Short display label for UI — falls back to a shortened id if the
+  /// backend hasn't backfilled invoiceNo for older records.
+  String get displayInvoiceNo =>
+      invoiceNo ?? 'TX-${id.length >= 8 ? id.substring(id.length - 8).toUpperCase() : id.toUpperCase()}';
+
   factory GoldTxnModel.fromJson(Map<String, dynamic> j) => GoldTxnModel(
     id: j['id']?.toString() ?? '',
+    invoiceNo: j['invoiceNo'] as String?,
     type: j['type'] ?? 'buy',
     status: j['status'] ?? 'pending',
     grams: (j['grams'] ?? 0) * 1.0,
@@ -166,7 +178,11 @@ class GoldRepository {
     final res = await _dio.get('$_base/rate');
     final data = res.data['data'] as Map<String, dynamic>;
     final gold = (data['gold'] ?? {}) as Map<String, dynamic>;
-    return GoldRateModel.fromJson({...gold, 'updatedAt': data['updatedAt']});
+    return GoldRateModel.fromJson({
+      ...gold,
+      'updatedAt': data['updatedAt'],
+      'source': data['source'],
+    });
   }
 
   // 2. Balance

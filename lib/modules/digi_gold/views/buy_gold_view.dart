@@ -248,20 +248,24 @@ class _BuyGoldViewState extends State<BuyGoldView> {
                       'By Amount',
                       _byAmount,
                       () => setState(() {
+                        final convertedAmt =
+                            _amount; // read BEFORE flipping mode
                         _byAmount = true;
-                        _ctrl.text = _amount > 0
-                            ? _amount.toStringAsFixed(0)
+                        _ctrl.text = convertedAmt > 0
+                            ? convertedAmt.toStringAsFixed(0)
                             : '1000';
-                        _slider = _amount.clamp(100.0, 100000.0);
+                        _slider = convertedAmt.clamp(100.0, 100000.0);
                       }),
                     ),
                     _TogBtn(
                       'By Weight',
                       !_byAmount,
                       () => setState(() {
+                        final convertedGrams =
+                            _grams; // read BEFORE flipping mode
                         _byAmount = false;
-                        _ctrl.text = _grams > 0
-                            ? _grams.toStringAsFixed(3)
+                        _ctrl.text = convertedGrams > 0
+                            ? convertedGrams.toStringAsFixed(3)
                             : '0.100';
                       }),
                     ),

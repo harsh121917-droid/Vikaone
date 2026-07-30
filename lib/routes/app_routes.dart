@@ -18,6 +18,7 @@ import '../modules/lock/views/passcode_setup_view.dart' show LockScreenView;
 import '../modules/lock/views/security_settings_view.dart';
 import '../modules/digi_gold/views/digi_gold_view.dart';
 import '../modules/digi_gold/views/digi_gold_savings_view.dart';
+import '../modules/digi_gold/views/gold_schemes_view.dart';
 import '../modules/digi_gold/views/sell_gold_view.dart';
 // import '../modules/digi_gold/views/buy_gold_view.dart';
 import '../modules/digi_gold/views/my_gold_view.dart';
@@ -44,6 +45,7 @@ abstract class AppRoutes {
   static const security       = '/security';
   static const digiGold         = '/digi-gold';
   static const digiGoldSavings  = '/digi-gold/savings';
+  static const goldSchemes      = '/digi-gold/schemes';
   static const sellGold          = '/digi-gold/sell';
   static const buyGold           = '/digi-gold/buy';
   static const myGold            = '/digi-gold/my-gold';
@@ -66,7 +68,12 @@ final appPages = [
   GetPage(name: AppRoutes.lockScreen,     page: () => const LockScreenView()),
   GetPage(name: AppRoutes.security,       page: () => const SecuritySettingsView()),
   GetPage(name: AppRoutes.digiGold,        page: () => const DigiGoldView()),
-  GetPage(name: AppRoutes.digiGoldSavings, page: () => const DigiGoldSavingsView()),
+  GetPage(name: AppRoutes.digiGoldSavings, page: () => const DigiGoldSavingsView(), binding: BindingsBuilder(() {
+    if (!Get.isRegistered<WalletController>()) Get.put(WalletController());
+  })),
+  GetPage(name: AppRoutes.goldSchemes, page: () => const GoldSchemesView(), binding: BindingsBuilder(() {
+    if (!Get.isRegistered<WalletController>()) Get.put(WalletController());
+  })),
   GetPage(name: AppRoutes.sellGold,        page: () => const SellGoldView(), binding: BindingsBuilder(() {
     if (!Get.isRegistered<WalletController>()) Get.put(WalletController());
   })),

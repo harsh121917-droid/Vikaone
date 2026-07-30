@@ -110,23 +110,45 @@ class _CoinRedeemViewState extends State<CoinRedeemView> {
                   ),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   children: [
-                    Text(
-                      coin.name,
-                      style: const TextStyle(
-                        color: Color(0xFF3D2B00),
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
+                    Container(
+                      width: 64,
+                      height: 64,
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.35),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Image.asset(
+                        coin.metal == 'gold'
+                            ? 'assets/images/gold_coin.png'
+                            : 'assets/images/silver_coin.png',
+                        fit: BoxFit.contain,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${coin.grams.toStringAsFixed(0)}g · Making charge ${coin.makingChargePct.toStringAsFixed(0)}%',
-                      style: const TextStyle(
-                        color: Color(0xFF3D2B00),
-                        fontSize: 12,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            coin.name,
+                            style: const TextStyle(
+                              color: Color(0xFF3D2B00),
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${coin.grams.toStringAsFixed(0)}g · Making charge ${coin.makingChargePct.toStringAsFixed(0)}%',
+                            style: const TextStyle(
+                              color: Color(0xFF3D2B00),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
