@@ -298,19 +298,7 @@ class WalletView extends StatelessWidget {
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: _ActionBtn(
-                                    icon: Icons.shopping_bag_outlined,
-                                    label: 'Buy Gold',
-                                    gradient: const [
-                                      Color(0xFFD4A017),
-                                      Color(0xFFFFD700),
-                                    ],
-                                    glowColor: const Color(0xFFD4A017),
-                                    onTap: () => Get.toNamed(AppRoutes.buyGold),
-                                  ),
-                                ),
+
                               ],
                             ),
                           ],

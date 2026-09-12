@@ -3,6 +3,7 @@ import 'package:real_estate/modules/digi_gold/views/buy_gold_view.dart';
 import '../modules/auth/bindings/auth_binding.dart';
 import '../modules/auth/views/login_view.dart';
 import '../modules/auth/views/register_view.dart';
+import '../modules/auth/views/forgot_password_view.dart';
 import '../modules/home/bindings/home_binding.dart';
 import '../modules/home/views/main_shell_view.dart';
 import '../modules/properties/bindings/property_detail_binding.dart';
@@ -14,7 +15,6 @@ import '../modules/wishlist/views/wishlist_view.dart';
 import '../modules/wishlist/views/admin_wishlist_view.dart';
 import '../modules/transactions/views/transaction_history_view.dart';
 import '../modules/lock/views/passcode_setup_view.dart';
-import '../modules/lock/views/passcode_setup_view.dart' show LockScreenView;
 import '../modules/lock/views/security_settings_view.dart';
 import '../modules/digi_gold/views/digi_gold_view.dart';
 import '../modules/digi_gold/views/digi_gold_savings_view.dart';
@@ -30,6 +30,7 @@ import '../modules/wallet/controllers/wallet_controller.dart';
 abstract class AppRoutes {
   static const login          = '/login';
   static const register       = '/register';
+  static const forgotPassword = '/forgot-password';
   static const home           = '/home';
   static const properties     = '/properties';
   static const propertyDetail = '/properties/detail';
@@ -57,6 +58,7 @@ abstract class AppRoutes {
 final appPages = [
   GetPage(name: AppRoutes.login,          page: () => const LoginView(),              binding: AuthBinding()),
   GetPage(name: AppRoutes.register,       page: () => const RegisterView(),           binding: AuthBinding()),
+  GetPage(name: AppRoutes.forgotPassword, page: () => const ForgotPasswordView()),
   GetPage(name: AppRoutes.home,           page: () => const MainShellView(),          binding: HomeBinding()),
   GetPage(name: AppRoutes.propertyDetail, page: () => const PropertyDetailView(),     binding: PropertyDetailBinding()),
   GetPage(name: AppRoutes.kyc,            page: () => const KycView(),               binding: KycBinding()),

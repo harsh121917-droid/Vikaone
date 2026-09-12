@@ -6,7 +6,6 @@ import '../controllers/home_controller.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/controllers/theme_controller.dart';
 import '../../../data/models/property_model.dart';
-import '../../../modules/auth/controllers/auth_controller.dart';
 import '../../../routes/app_routes.dart';
 import '../controllers/main_shell_controller.dart';
 import '../../wishlist/controllers/wishlist_controller.dart';

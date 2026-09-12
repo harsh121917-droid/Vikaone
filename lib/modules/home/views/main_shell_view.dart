@@ -2,7 +2,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:real_estate/modules/digi_gold/views/digi_gold_view.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/controllers/theme_controller.dart';
 import '../../properties/views/properties_view.dart';
@@ -24,8 +23,7 @@ class MainShellView extends GetView<MainShellController> {
         () => IndexedStack(
           index: controller.tabIndex.value,
           children: const [
-            // HomeView(),
-            DigiGoldView(),
+            HomeView(),
             PropertiesView(),
             InvestmentsView(),
             SavingsView(),
@@ -45,7 +43,7 @@ class MainShellView extends GetView<MainShellController> {
   }
 }
 
-// ─── Items ────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Items â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _NI {
   final IconData icon;
   final String label;
@@ -60,7 +58,7 @@ const _items = [
   _NI(Icons.person_outline_rounded, 'Profile'),
 ];
 
-// ─── Glass Nav Bar ────────────────────────────────────────────────────────────
+// â”€â”€â”€ Glass Nav Bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _GlassNav extends StatelessWidget {
   const _GlassNav({required this.selected, required this.onTap});
   final int selected;
@@ -95,7 +93,7 @@ class _GlassNav extends StatelessWidget {
                       ],
               ),
               borderRadius: BorderRadius.circular(36),
-              // Glass edge — top-left bright, bottom-right dark
+              // Glass edge â€” top-left bright, bottom-right dark
               border: Border.all(
                 color: dark
                     ? Colors.white.withOpacity(0.10)
@@ -147,7 +145,7 @@ class _GlassNav extends StatelessWidget {
   }
 }
 
-// ─── Individual Glass 3D Button ───────────────────────────────────────────────
+// â”€â”€â”€ Individual Glass 3D Button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _GlassBtn extends StatefulWidget {
   const _GlassBtn({
     required this.item,
@@ -165,8 +163,6 @@ class _GlassBtn extends StatefulWidget {
 class _GlassBtnState extends State<_GlassBtn>
     with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl;
-  late final Animation<double> _scale;
-  late final Animation<double> _bounce;
 
   @override
   void initState() {
@@ -175,11 +171,6 @@ class _GlassBtnState extends State<_GlassBtn>
       vsync: this,
       duration: const Duration(milliseconds: 380),
     );
-    _scale = Tween(
-      begin: 1.0,
-      end: 0.88,
-    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
-    _bounce = Tween(begin: 1.0, end: 1.0).animate(_ctrl); // placeholder
   }
 
   @override
@@ -213,7 +204,7 @@ class _GlassBtnState extends State<_GlassBtn>
             builder: (_, __) => Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // ── 3D Glass Button ──────────────────────────────────────
+                // â”€â”€ 3D Glass Button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 280),
                   curve: Curves.easeOutCubic,
@@ -320,7 +311,7 @@ class _GlassBtnState extends State<_GlassBtn>
 
                 const SizedBox(height: 4),
 
-                // ── Label ─────────────────────────────────────────────────
+                // â”€â”€ Label â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                 AnimatedDefaultTextStyle(
                   duration: const Duration(milliseconds: 220),
                   style: TextStyle(
@@ -342,7 +333,7 @@ class _GlassBtnState extends State<_GlassBtn>
   }
 }
 
-// ─── 3D Drawer ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ 3D Drawer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _AppDrawer extends StatelessWidget {
   const _AppDrawer();
 

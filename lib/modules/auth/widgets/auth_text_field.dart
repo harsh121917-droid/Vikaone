@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../core/theme/app_colors.dart';
 
 class AuthTextField extends StatefulWidget {
@@ -11,6 +12,7 @@ class AuthTextField extends StatefulWidget {
     this.controller,
     this.validator,
     this.textInputAction = TextInputAction.next,
+    this.inputFormatters,
   });
 
   final String hint;
@@ -20,6 +22,7 @@ class AuthTextField extends StatefulWidget {
   final TextEditingController? controller;
   final String? Function(String?)? validator;
   final TextInputAction textInputAction;
+  final List<TextInputFormatter>? inputFormatters;
 
   @override
   State<AuthTextField> createState() => _AuthTextFieldState();
@@ -36,6 +39,7 @@ class _AuthTextFieldState extends State<AuthTextField> {
       keyboardType: widget.keyboardType,
       textInputAction: widget.textInputAction,
       validator: widget.validator,
+      inputFormatters: widget.inputFormatters,
       // Always black text — never changes with theme
       style: const TextStyle(
         color: Colors.black,

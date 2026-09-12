@@ -1,8 +1,9 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
-import 'package:flutter/material.dart' show TextEditingController, Color;
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../core/services/auth_service.dart';
 import '../../../data/models/kyc_model.dart';
 import '../../../data/repositories/kyc_repository.dart';
 
@@ -41,6 +42,12 @@ class KycController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    try {
+      final cached = AuthService().currentUser?.kycStatus;
+      if (cached != null && cached.isNotEmpty && cached != 'not_submitted') {
+        kycStatus.value = cached;
+      }
+    } catch (_) {}
     loadMyKyc();
   }
 
@@ -91,11 +98,41 @@ class KycController extends GetxController {
   }
 
   Future<void> pickImage(Rx<File?> target) async {
-    final picked = await _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 80,
+    Get.bottomSheet(
+      Container(
+        color: Get.isDarkMode ? const Color(0xFF0E1626) : Colors.white,
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.camera_alt_outlined, color: Get.isDarkMode ? Colors.white : Colors.black),
+              title: Text('Take Photo', style: TextStyle(color: Get.isDarkMode ? Colors.white : Colors.black)),
+              onTap: () async {
+                Get.back();
+                final picked = await _picker.pickImage(
+                  source: ImageSource.camera,
+                  imageQuality: 80,
+                );
+                if (picked != null) target.value = File(picked.path);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.photo_library_outlined, color: Get.isDarkMode ? Colors.white : Colors.black),
+              title: Text('Choose from Gallery', style: TextStyle(color: Get.isDarkMode ? Colors.white : Colors.black)),
+              onTap: () async {
+                Get.back();
+                final picked = await _picker.pickImage(
+                  source: ImageSource.gallery,
+                  imageQuality: 80,
+                );
+                if (picked != null) target.value = File(picked.path);
+              },
+            ),
+          ],
+        ),
+      ),
     );
-    if (picked != null) target.value = File(picked.path);
   }
 
   // UPDATE setDob
@@ -107,6 +144,16 @@ class KycController extends GetxController {
   }
 
   Future<void> submit() async {
+    if (kycStatus.value == 'pending') {
+      Get.snackbar(
+        'KYC in Review',
+        'Your KYC documents are already under review by our admin team',
+        backgroundColor: const Color(0xFFF39C12),
+        colorText: const Color(0xFFFFFFFF),
+      );
+      return;
+    }
+
     if (fullNameCtrl.text.trim().isEmpty ||
         dobCtrl.text.trim().isEmpty ||
         addressCtrl.text.trim().isEmpty ||
@@ -165,6 +212,76 @@ class KycController extends GetxController {
           'Your KYC is under review',
           backgroundColor: const Color(0xFF2ECC71),
           colorText: const Color(0xFFFFFFFF),
+        );
+      } else {
+        Get.snackbar(
+          'Failed',
+          res['message'] ?? 'Submission failed',
+          backgroundColor: const Color(0xFFE53E3E),
+          colorText: const Color(0xFFFFFFFF),
+        );
+      }
+    } on DioException catch (e) {
+      Get.snackbar(
+        'Error',
+        e.response?.data?['message'] ?? 'Submission failed',
+        backgroundColor: const Color(0xFFE53E3E),
+        colorText: const Color(0xFFFFFFFF),
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Connection error. Please try again.',
+        backgroundColor: const Color(0xFFE53E3E),
+        colorText: const Color(0xFFFFFFFF),
+      );
+    } finally {
+      isSubmitting.value = false;
+    }
+  }
+
+  Future<void> submitPhotoOnly() async {
+    if (kycStatus.value == 'pending') {
+      Get.snackbar(
+        'KYC in Review',
+        'Your KYC documents are already under review by our admin team',
+        backgroundColor: const Color(0xFFF39C12),
+        colorText: const Color(0xFFFFFFFF),
+      );
+      return;
+    }
+
+    if (panImage.value == null && aadhaarFrontImage.value == null) {
+      Get.snackbar(
+        'Upload Required',
+        'Please upload at least your PAN Card or Aadhaar ID photo',
+        backgroundColor: const Color(0xFFE53E3E),
+        colorText: const Color(0xFFFFFFFF),
+      );
+      return;
+    }
+
+    try {
+      isSubmitting.value = true;
+      final userName = fullNameCtrl.text.trim().isNotEmpty
+          ? fullNameCtrl.text.trim()
+          : (AuthService().currentUser?.name ?? '');
+
+      final res = await _repo.submitPhotoOnlyKyc(
+        fullName: userName,
+        panImagePath: panImage.value?.path ?? (aadhaarFrontImage.value?.path ?? ''),
+        aadhaarFrontPath: aadhaarFrontImage.value?.path,
+        aadhaarBackPath: aadhaarBackImage.value?.path,
+      );
+
+      if (res['success'] == true) {
+        kycStatus.value = 'pending';
+        Get.snackbar(
+          'Photo KYC Submitted ✓',
+          'Your documents are uploaded and under review by our admin team',
+          backgroundColor: const Color(0xFF2ECC71),
+          colorText: const Color(0xFFFFFFFF),
+          duration: const Duration(seconds: 4),
         );
       } else {
         Get.snackbar(

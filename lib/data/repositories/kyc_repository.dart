@@ -53,4 +53,24 @@ class KycRepository {
     final res = await _dio.post(ApiConstants.kycSubmit, data: formData);
     return res.data;
   }
+
+  Future<Map<String, dynamic>> submitPhotoOnlyKyc({
+    String? fullName,
+    required String panImagePath,
+    String? aadhaarFrontPath,
+    String? aadhaarBackPath,
+  }) async {
+    final formData = FormData.fromMap({
+      'isPhotoOnly': 'true',
+      if (fullName != null && fullName.isNotEmpty) 'fullName': fullName,
+      'panImage': await MultipartFile.fromFile(panImagePath),
+      if (aadhaarFrontPath != null && aadhaarFrontPath.isNotEmpty)
+        'aadhaarFront': await MultipartFile.fromFile(aadhaarFrontPath),
+      if (aadhaarBackPath != null && aadhaarBackPath.isNotEmpty)
+        'aadhaarBack': await MultipartFile.fromFile(aadhaarBackPath),
+    });
+
+    final res = await _dio.post(ApiConstants.kycSubmit, data: formData);
+    return res.data;
+  }
 }

@@ -21,8 +21,8 @@ class HomeController extends GetxController {
   Future<void> loadFeatured() async {
     try {
       isLoading.value = true;
-      var props = await _repo.getProperties(featured: true, limit: 5);
-      if (props.isEmpty) props = await _repo.getProperties(limit: 5);
+      var props = await _repo.getProperties(featured: true, limit: 20);
+      if (props.isEmpty) props = await _repo.getProperties(limit: 20);
       featuredProps.value = props;
     } on DioException catch (e) {
       errorMsg.value = e.response?.data?['message'] ?? 'Failed to load';
