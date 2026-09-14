@@ -17,6 +17,7 @@ class PropertyModel {
   final List<PropertyImage> images;
   final List<String> amenities;
   final String status;
+  final String purchaseMode;
 
   PropertyModel({
     required this.id,
@@ -37,6 +38,7 @@ class PropertyModel {
     required this.images,
     required this.amenities,
     required this.status,
+    this.purchaseMode = 'both',
   });
 
   String? get coverImage => images.isNotEmpty ? images.first.url : null;
@@ -44,6 +46,10 @@ class PropertyModel {
   double get soldPercent => totalBricks != null && totalBricks! > 0
       ? (soldBricks ?? 0) / totalBricks! * 100
       : 0;
+  bool get allowsBricks => purchaseMode == 'both' || purchaseMode == 'bricks';
+  bool get allowsDirectBuy => purchaseMode == 'both' || purchaseMode == 'direct';
+  bool get isDirectBuyOnly => purchaseMode == 'direct';
+  bool get isBricksOnly => purchaseMode == 'bricks';
 
   String get formattedPrice {
     final n = price.amount;
@@ -74,6 +80,7 @@ class PropertyModel {
         .toList(),
     amenities: List<String>.from(j['amenities'] ?? []),
     status: j['status'] ?? 'draft',
+    purchaseMode: j['purchaseMode'] ?? 'both',
   );
 }
 

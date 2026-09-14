@@ -10,6 +10,28 @@ class PropertiesController extends GetxController {
   final properties = <PropertyModel>[].obs;
   final errorMsg = ''.obs;
 
+  // ── Purchase mode tabs: 'all' | 'bricks' | 'direct' ──────────────────────
+  final selectedPurchaseTab = 'all'.obs;
+
+  List<PropertyModel> get filteredProperties {
+    final tab = selectedPurchaseTab.value;
+    if (tab == 'bricks') {
+      return properties.where((p) => p.allowsBricks).toList();
+    }
+    if (tab == 'direct') {
+      return properties.where((p) => p.allowsDirectBuy).toList();
+    }
+    return properties;
+  }
+
+  int get totalCount => properties.length;
+  int get bricksCount => properties.where((p) => p.allowsBricks).length;
+  int get directCount => properties.where((p) => p.allowsDirectBuy).length;
+
+  void setPurchaseTab(String tab) {
+    selectedPurchaseTab.value = tab;
+  }
+
   // ── Filter state ─────────────────────────────────────────────────────────
   final search = ''.obs;
   final sortBy = 'newest'.obs; // newest | price_asc | price_desc | area_asc

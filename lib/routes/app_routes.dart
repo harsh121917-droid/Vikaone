@@ -1,3 +1,7 @@
+import '../modules/properties/bindings/properties_binding.dart';
+import '../modules/properties/views/properties_view.dart';
+import '../modules/investments/bindings/investments_binding.dart';
+import '../modules/investments/views/investments_view.dart';
 import 'package:get/get.dart';
 import 'package:real_estate/modules/digi_gold/views/buy_gold_view.dart';
 import '../modules/auth/bindings/auth_binding.dart';
@@ -60,6 +64,8 @@ final appPages = [
   GetPage(name: AppRoutes.register,       page: () => const RegisterView(),           binding: AuthBinding()),
   GetPage(name: AppRoutes.forgotPassword, page: () => const ForgotPasswordView()),
   GetPage(name: AppRoutes.home,           page: () => const MainShellView(),          binding: HomeBinding()),
+  GetPage(name: AppRoutes.properties,     page: () => const PropertiesView(),          binding: PropertiesBinding()),
+  GetPage(name: AppRoutes.investments,    page: () => const InvestmentsView(),         binding: InvestmentsBinding()),
   GetPage(name: AppRoutes.propertyDetail, page: () => const PropertyDetailView(),     binding: PropertyDetailBinding()),
   GetPage(name: AppRoutes.kyc,            page: () => const KycView(),               binding: KycBinding()),
   GetPage(name: AppRoutes.myPlans,        page: () => const MyPlansView()),

@@ -7,12 +7,16 @@ class InvestmentModel {
   final int totalAmount;
   final double? ownershipPercent;
   final String status;
+  final String purchaseType;
+  final bool isDirectBuy;
   final PropertyModel? property;
   final DateTime createdAt;
 
   InvestmentModel({
     required this.id, required this.bricks, required this.pricePerBrick,
     required this.totalAmount, this.ownershipPercent, required this.status,
+    this.purchaseType = 'bricks',
+    this.isDirectBuy = false,
     this.property, required this.createdAt,
   });
 
@@ -27,6 +31,8 @@ class InvestmentModel {
     pricePerBrick: j['pricePerBrick'] ?? 0, totalAmount: j['totalAmount'] ?? 0,
     ownershipPercent: (j['ownershipPercent'] as num?)?.toDouble(),
     status: j['status'] ?? 'pending',
+    purchaseType: j['purchaseType'] ?? (j['isDirectBuy'] == true ? 'direct' : 'bricks'),
+    isDirectBuy: j['isDirectBuy'] ?? (j['purchaseType'] == 'direct'),
     property: j['property'] != null ? PropertyModel.fromJson(j['property']) : null,
     createdAt: DateTime.tryParse(j['createdAt'] ?? '') ?? DateTime.now(),
   );

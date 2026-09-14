@@ -752,6 +752,136 @@ class _FeaturedCard extends StatelessWidget {
                         )
                       : _ph(dark),
                 ),
+
+                // Dark gradient scrim for badge legibility
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(24),
+                      ),
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withOpacity(0.55),
+                          Colors.transparent,
+                          Colors.black.withOpacity(0.25),
+                        ],
+                        stops: const [0.0, 0.45, 1.0],
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Top Left Badges (Featured + Purchase Mode) - constrained to not overlap with Wishlist
+                Positioned(
+                  top: 10,
+                  left: 10,
+                  right: 52, // Guarantees 0 overlap with the 34px wishlist button on top-right
+                  child: Wrap(
+                    spacing: 5,
+                    runSpacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      if (property.featured)
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 7,
+                                vertical: 3.5,
+                              ),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFFD97706), Color(0xFFF59E0B)],
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFFF59E0B).withOpacity(0.4),
+                                    blurRadius: 6,
+                                  ),
+                                ],
+                              ),
+                              child: const Text(
+                                '★ FEATURED',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 8.5,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 0.4,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 3.5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.78),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: property.isDirectBuyOnly
+                                    ? const Color(0xFF818CF8)
+                                    : (property.isBricksOnly
+                                        ? const Color(0xFF34D399)
+                                        : AppColors.accent),
+                                width: 0.9,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  property.isDirectBuyOnly
+                                      ? Icons.business_rounded
+                                      : (property.isBricksOnly
+                                          ? Icons.grid_view_rounded
+                                          : Icons.stars_rounded),
+                                  color: property.isDirectBuyOnly
+                                      ? const Color(0xFF818CF8)
+                                      : (property.isBricksOnly
+                                          ? const Color(0xFF34D399)
+                                          : AppColors.accent),
+                                  size: 10.5,
+                                ),
+                                const SizedBox(width: 3.5),
+                                Text(
+                                  property.isDirectBuyOnly
+                                      ? 'Direct Buy'
+                                      : (property.isBricksOnly
+                                          ? 'Bricks'
+                                          : 'Bricks + Buy'),
+                                  style: TextStyle(
+                                    color: property.isDirectBuyOnly
+                                        ? const Color(0xFFC7D2FE)
+                                        : (property.isBricksOnly
+                                            ? const Color(0xFFA7F3D0)
+                                            : const Color(0xFFFDE68A)),
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Top Right: Frosted Wishlist Favorite Button
                 Positioned(
                   top: 10,
                   right: 10,
@@ -772,7 +902,7 @@ class _FeaturedCard extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: saved
                                   ? Colors.red.withOpacity(0.85)
-                                  : Colors.white.withOpacity(0.25),
+                                  : Colors.black.withOpacity(0.4),
                               shape: BoxShape.circle,
                               border: Border.all(
                                 color: saved
@@ -793,35 +923,6 @@ class _FeaturedCard extends StatelessWidget {
                     );
                   }),
                 ),
-                if (property.featured)
-                  Positioned(
-                    top: 10,
-                    left: 10,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.accent.withOpacity(0.85),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Text(
-                            'Featured',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
               ],
             ),
             Padding(
@@ -1008,35 +1109,96 @@ class _RecommendedCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.horizontal(
-                left: Radius.circular(20),
-              ),
-              child: SizedBox(
-                width: 110,
-                height: 110,
-                child: property.coverImage != null
-                    ? Image.network(
-                        property.coverImage!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          color: phBg,
-                          child: Icon(
-                            Icons.home_outlined,
-                            color: phIcon,
-                            size: 32,
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.horizontal(
+                    left: Radius.circular(20),
+                  ),
+                  child: SizedBox(
+                    width: 110,
+                    height: 110,
+                    child: property.coverImage != null
+                        ? Image.network(
+                            property.coverImage!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              color: phBg,
+                              child: Icon(
+                                Icons.home_outlined,
+                                color: phIcon,
+                                size: 32,
+                              ),
+                            ),
+                          )
+                        : Container(
+                            color: phBg,
+                            child: Icon(
+                              Icons.home_outlined,
+                              color: phIcon,
+                              size: 32,
+                            ),
+                          ),
+                  ),
+                ),
+                Positioned(
+                  bottom: 8,
+                  left: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2.5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.75),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: property.isDirectBuyOnly
+                            ? const Color(0xFF818CF8)
+                            : (property.isBricksOnly
+                                ? const Color(0xFF34D399)
+                                : AppColors.accent),
+                        width: 0.8,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          property.isDirectBuyOnly
+                              ? Icons.business_rounded
+                              : (property.isBricksOnly
+                                  ? Icons.grid_view_rounded
+                                  : Icons.stars_rounded),
+                          color: property.isDirectBuyOnly
+                              ? const Color(0xFF818CF8)
+                              : (property.isBricksOnly
+                                  ? const Color(0xFF34D399)
+                                  : AppColors.accent),
+                          size: 10,
+                        ),
+                        const SizedBox(width: 3),
+                        Text(
+                          property.isDirectBuyOnly
+                              ? 'Direct Buy'
+                              : (property.isBricksOnly
+                                  ? 'Bricks Only'
+                                  : 'Bricks + Direct'),
+                          style: TextStyle(
+                            color: property.isDirectBuyOnly
+                                ? const Color(0xFFC7D2FE)
+                                : (property.isBricksOnly
+                                    ? const Color(0xFFA7F3D0)
+                                    : const Color(0xFFFDE68A)),
+                            fontSize: 8.5,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
-                      )
-                    : Container(
-                        color: phBg,
-                        child: Icon(
-                          Icons.home_outlined,
-                          color: phIcon,
-                          size: 32,
-                        ),
-                      ),
-              ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
             Expanded(
               child: Padding(

@@ -15,10 +15,16 @@ class InvestmentRepository {
   Future<Map<String, dynamic>> createOrder({
     required String propertyId,
     required int bricks,
+    bool isDirectBuy = false,
   }) async {
     final res = await _dio.post(
       ApiConstants.createOrder,
-      data: {'propertyId': propertyId, 'bricks': bricks},
+      data: {
+        'propertyId': propertyId,
+        'bricks': bricks,
+        'isDirectBuy': isDirectBuy,
+        'purchaseType': isDirectBuy ? 'direct' : 'bricks',
+      },
     );
     return res.data;
   }

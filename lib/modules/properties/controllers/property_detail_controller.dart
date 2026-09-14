@@ -25,6 +25,7 @@ class PropertyDetailController extends GetxController {
   // Holds context for the in-flight order so we can verify after payment
   String? _pendingInvestmentId;
   int?    _pendingBricks;
+  bool    _isDirectBuyInFlight = false;
 
   @override
   void onInit() {
@@ -77,6 +78,7 @@ class PropertyDetailController extends GetxController {
     try {
       isPurchasing.value   = true;
       purchaseStatus.value = 'creating_order';
+      _isDirectBuyInFlight = false;
 
       final data = await _invRepo.createOrder(propertyId: p.id, bricks: bricks);
 
@@ -137,6 +139,89 @@ class PropertyDetailController extends GetxController {
     }
   }
 
+
+
+  /* ── Direct Buy (Full Property 100% Ownership) → create order → Razorpay ── */
+  Future<void> initiateDirectBuy() async {
+    final p = property.value;
+    if (p == null) return;
+
+    if (p.availableBricks <= 0) {
+      Get.snackbar('Sold Out', 'This property is already fully sold or funded.');
+      return;
+    }
+
+    try {
+      isPurchasing.value   = true;
+      purchaseStatus.value = 'creating_order';
+      _isDirectBuyInFlight = true;
+
+      final data = await _invRepo.createOrder(
+        propertyId: p.id,
+        bricks: p.availableBricks,
+        isDirectBuy: true,
+      );
+
+      if (data['success'] != true) {
+        purchaseStatus.value = 'failed';
+        _isDirectBuyInFlight = false;
+        Get.snackbar('Order failed', data['message'] ?? 'Could not create order',
+          backgroundColor: const Color(0xFFE53E3E), colorText: const Color(0xFFFFFFFF));
+        return;
+      }
+
+      _pendingInvestmentId = data['investment']['id'];
+      _pendingBricks       = data['investment']['bricks'] ?? p.availableBricks;
+
+      final order = data['order'];
+      final key   = data['key'];
+      final user  = _auth.currentUser;
+
+      purchaseStatus.value = 'awaiting_payment';
+
+      final options = {
+        'key': key,
+        'amount': order['amount'],
+        'currency': order['currency'],
+        'order_id': order['id'],
+        'name': 'Bharat SQFT',
+        'description': 'Direct Buy (Full Property) — ${p.title}',
+        'prefill': {
+          'contact': user?.phone ?? '',
+          'email':   user?.email ?? '',
+        },
+        'theme': {'color': '#D4A017'},
+      };
+
+      _razorpay.open(options);
+    } on DioException catch (e) {
+      isPurchasing.value    = false;
+      purchaseStatus.value  = 'failed';
+      _isDirectBuyInFlight = false;
+      final msg = e.response?.data?['message'] ?? 'Order creation failed';
+      final code = e.response?.data?['code'];
+      if (code == 'KYC_REQUIRED') {
+        Get.snackbar('KYC Required', msg,
+          backgroundColor: const Color(0xFFF39C12), colorText: const Color(0xFFFFFFFF),
+          duration: const Duration(seconds: 4),
+          mainButton: TextButton(
+            onPressed: () {
+              Get.closeCurrentSnackbar();
+              Get.toNamed('/kyc');
+            },
+            child: const Text('Complete KYC', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+          ));
+      } else {
+        Get.snackbar('Error', msg, backgroundColor: const Color(0xFFE53E3E), colorText: const Color(0xFFFFFFFF));
+      }
+    } catch (e) {
+      isPurchasing.value   = false;
+      purchaseStatus.value = 'failed';
+      _isDirectBuyInFlight = false;
+      Get.snackbar('Error', 'Connection error. Please try again.');
+    }
+  }
+
   Future<void> _onPaymentSuccess(PaymentSuccessResponse response) async {
     purchaseStatus.value = 'verifying';
     try {
@@ -149,11 +234,19 @@ class PropertyDetailController extends GetxController {
 
       if (ok) {
         purchaseStatus.value = 'success';
+        final wasDirect = _isDirectBuyInFlight;
+        _isDirectBuyInFlight = false;
         // refresh property to show updated sold bricks
         if (property.value != null) await loadProperty(property.value!.id);
-        Get.snackbar('Success! 🎉', 'You now own $_pendingBricks brick${(_pendingBricks ?? 0) > 1 ? "s" : ""} of this property',
-          backgroundColor: const Color(0xFF2ECC71), colorText: const Color(0xFFFFFFFF),
-          duration: const Duration(seconds: 4));
+        Get.snackbar(
+          'Success! 🎉',
+          wasDirect
+              ? 'Congratulations! You have purchased the full property with 100% ownership!'
+              : 'You now own $_pendingBricks brick${(_pendingBricks ?? 0) > 1 ? "s" : ""} of this property',
+          backgroundColor: const Color(0xFF2ECC71),
+          colorText: const Color(0xFFFFFFFF),
+          duration: const Duration(seconds: 5),
+        );
       } else {
         purchaseStatus.value = 'failed';
         Get.snackbar('Verification failed', 'Contact support with payment ID: ${response.paymentId}',

@@ -1,5 +1,6 @@
+import '../../home/controllers/main_shell_controller.dart';
+import '../../investments/controllers/investments_controller.dart';
 import 'dart:ui';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -508,82 +509,126 @@ class _HolographicAvatar extends StatelessWidget {
 // ═════════════════════════════════════════════════════════════════════════════
 // ─── STATS STRIP ──────────────────────────────────────────────────────────────
 // ═════════════════════════════════════════════════════════════════════════════
+void _openProperties() {
+  HapticFeedback.lightImpact();
+  if (Get.isRegistered<MainShellController>()) {
+    Get.find<MainShellController>().changeTab(1);
+  } else {
+    Get.toNamed(AppRoutes.properties);
+  }
+}
+
+void _openMyBricks() {
+  HapticFeedback.lightImpact();
+  if (Get.isRegistered<MainShellController>()) {
+    Get.find<MainShellController>().changeTab(2);
+  } else {
+    Get.toNamed(AppRoutes.investments);
+  }
+}
+
+void _openSavings() {
+  HapticFeedback.lightImpact();
+  if (Get.isRegistered<MainShellController>()) {
+    Get.find<MainShellController>().changeTab(3);
+  } else {
+    Get.toNamed(AppRoutes.myPlans);
+  }
+}
+
 class _StatsStrip extends StatelessWidget {
   const _StatsStrip({required this.dark});
   final bool dark;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          gradient: dark
-              ? const LinearGradient(
-                  colors: [Color(0xFF0F1829), Color(0xFF162035)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                )
-              : const LinearGradient(
-                  colors: [Color(0xFF1A2340), Color(0xFF243058)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: AppColors.accent.withOpacity(dark ? 0.2 : 0.15),
+    return Obx(() {
+      final invCtrl = Get.isRegistered<InvestmentsController>()
+          ? Get.find<InvestmentsController>()
+          : null;
+      final totalInvested = invCtrl?.totalInvested ?? 0;
+      final propCount = invCtrl?.propertyCount ?? 0;
+      final totalBricks = invCtrl?.totalBricks ?? 0;
+
+      final investedStr = totalInvested > 0
+          ? '₹${totalInvested >= 10000000 ? "${(totalInvested / 10000000).toStringAsFixed(1)}Cr" : (totalInvested >= 100000 ? "${(totalInvested / 100000).toStringAsFixed(1)}L" : totalInvested.toString())}'
+          : '₹0';
+
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            gradient: dark
+                ? const LinearGradient(
+                    colors: [Color(0xFF0F1829), Color(0xFF162035)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : const LinearGradient(
+                    colors: [Color(0xFF1A2340), Color(0xFF243058)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: AppColors.accent.withOpacity(dark ? 0.2 : 0.15),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(dark ? 0.5 : 0.25),
+                blurRadius: 24,
+                offset: const Offset(0, 10),
+                spreadRadius: -4,
+              ),
+              BoxShadow(
+                color: AppColors.accent.withOpacity(0.08),
+                blurRadius: 20,
+              ),
+            ],
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(dark ? 0.5 : 0.25),
-              blurRadius: 24,
-              offset: const Offset(0, 10),
-              spreadRadius: -4,
-            ),
-            BoxShadow(
-              color: AppColors.accent.withOpacity(0.08),
-              blurRadius: 20,
-            ),
-          ],
+          child: Row(
+            children: [
+              Expanded(
+                child: _StatCell(
+                  value: investedStr,
+                  label: 'Invested',
+                  icon: Icons.account_balance_wallet_outlined,
+                  onTap: _openMyBricks,
+                ),
+              ),
+              _VertDivider(),
+              Expanded(
+                child: _StatCell(
+                  value: '$propCount',
+                  label: 'Properties',
+                  icon: Icons.apartment_outlined,
+                  onTap: _openProperties,
+                ),
+              ),
+              _VertDivider(),
+              Expanded(
+                child: _StatCell(
+                  value: '$totalBricks',
+                  label: 'Bricks',
+                  icon: Icons.grid_view_rounded,
+                  onTap: _openMyBricks,
+                ),
+              ),
+              _VertDivider(),
+              Expanded(
+                child: _StatCell(
+                  value: '12.8%',
+                  label: 'Target Yield',
+                  icon: Icons.trending_up_rounded,
+                  onTap: _openProperties,
+                ),
+              ),
+            ],
+          ),
         ),
-        child: Row(
-          children: [
-            Expanded(
-              child: _StatCell(
-                value: '₹0',
-                label: 'Invested',
-                icon: Icons.account_balance_wallet_outlined,
-              ),
-            ),
-            _VertDivider(),
-            Expanded(
-              child: _StatCell(
-                value: '0',
-                label: 'Properties',
-                icon: Icons.apartment_outlined,
-              ),
-            ),
-            _VertDivider(),
-            Expanded(
-              child: _StatCell(
-                value: '0',
-                label: 'Bricks',
-                icon: Icons.grid_view_rounded,
-              ),
-            ),
-            _VertDivider(),
-            Expanded(
-              child: _StatCell(
-                value: '0%',
-                label: 'Returns',
-                icon: Icons.trending_up_rounded,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+      );
+    });
   }
 }
 
@@ -592,34 +637,45 @@ class _StatCell extends StatelessWidget {
     required this.value,
     required this.label,
     required this.icon,
+    this.onTap,
   });
   final String value, label;
   final IconData icon;
+  final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => Column(
-    children: [
-      Icon(icon, color: AppColors.accent, size: 16),
-      const SizedBox(height: 6),
-      Text(
-        value,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 16,
-          fontWeight: FontWeight.w800,
+  Widget build(BuildContext context) {
+    final cellWidget = Column(
+      children: [
+        Icon(icon, color: AppColors.accent, size: 16),
+        const SizedBox(height: 6),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+          ),
         ),
-      ),
-      const SizedBox(height: 2),
-      Text(
-        label,
-        style: TextStyle(
-          color: Colors.white.withOpacity(0.5),
-          fontSize: 10,
-          fontWeight: FontWeight.w500,
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.5),
+            fontSize: 10,
+            fontWeight: FontWeight.w500,
+          ),
         ),
-      ),
-    ],
-  );
+      ],
+    );
+
+    if (onTap == null) return cellWidget;
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: cellWidget,
+    );
+  }
 }
 
 class _VertDivider extends StatelessWidget {
@@ -664,7 +720,7 @@ class _MenuSection extends StatelessWidget {
                   subtitle: 'Portfolio',
                   color: AppColors.accent,
                   dark: dark,
-                  onTap: () => Get.toNamed(AppRoutes.investments),
+                  onTap: _openMyBricks,
                 ),
               ),
               const SizedBox(width: 12),
@@ -690,7 +746,7 @@ class _MenuSection extends StatelessWidget {
                   subtitle: 'Browse',
                   color: const Color(0xFF2ecc71),
                   dark: dark,
-                  onTap: () => Get.toNamed(AppRoutes.properties),
+                  onTap: _openProperties,
                 ),
               ),
               const SizedBox(width: 12),
@@ -701,7 +757,7 @@ class _MenuSection extends StatelessWidget {
                   subtitle: 'My Plans',
                   color: const Color(0xFFAB47BC),
                   dark: dark,
-                  onTap: () => Get.toNamed(AppRoutes.myPlans),
+                  onTap: _openSavings,
                 ),
               ),
             ],

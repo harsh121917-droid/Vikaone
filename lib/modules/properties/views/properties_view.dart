@@ -33,7 +33,7 @@ class PropertiesView extends GetView<PropertiesController> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Properties',
+                            'Explore Properties',
                             style: TextStyle(
                               color: tp,
                               fontSize: 24,
@@ -43,7 +43,7 @@ class PropertiesView extends GetView<PropertiesController> {
                           ),
                           Obx(
                             () => Text(
-                              '${controller.properties.length} properties found',
+                              '${controller.filteredProperties.length} properties available',
                               style: TextStyle(color: ts, fontSize: 12),
                             ),
                           ),
@@ -134,6 +134,76 @@ class PropertiesView extends GetView<PropertiesController> {
                     }),
                   ],
                 ),
+              ),
+              const SizedBox(height: 14),
+
+              // ── Purchase Mode Tab Bar ────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Obx(() {
+                  final activeTab = controller.selectedPurchaseTab.value;
+                  return Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: dark ? const Color(0xFF0E1626) : Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: dark
+                            ? const Color(0xFF1A2B45)
+                            : const Color(0xFFE2E6F0),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(dark ? 0.25 : 0.04),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        _PurchaseTabItem(
+                          label: 'All Properties',
+                          icon: Icons.grid_view_rounded,
+                          count: controller.totalCount,
+                          isActive: activeTab == 'all',
+                          activeColor: AppColors.accent,
+                          dark: dark,
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            controller.setPurchaseTab('all');
+                          },
+                        ),
+                        const SizedBox(width: 4),
+                        _PurchaseTabItem(
+                          label: 'Bricks Investment',
+                          icon: Icons.layers_rounded,
+                          count: controller.bricksCount,
+                          isActive: activeTab == 'bricks',
+                          activeColor: const Color(0xFF10B981),
+                          dark: dark,
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            controller.setPurchaseTab('bricks');
+                          },
+                        ),
+                        const SizedBox(width: 4),
+                        _PurchaseTabItem(
+                          label: 'Full Ownership',
+                          icon: Icons.business_rounded,
+                          count: controller.directCount,
+                          isActive: activeTab == 'direct',
+                          activeColor: const Color(0xFF6366F1),
+                          dark: dark,
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            controller.setPurchaseTab('direct');
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                }),
               ),
               const SizedBox(height: 14),
 
@@ -303,7 +373,8 @@ class PropertiesView extends GetView<PropertiesController> {
                       ),
                     );
                   }
-                  if (controller.properties.isEmpty) {
+                  final list = controller.filteredProperties;
+                  if (list.isEmpty) {
                     return _EmptyState(
                       dark: dark,
                       onClear: controller.clearFilters,
@@ -313,11 +384,11 @@ class PropertiesView extends GetView<PropertiesController> {
                     onRefresh: controller.loadProperties,
                     color: AppColors.accent,
                     child: ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
                       physics: const BouncingScrollPhysics(),
-                      itemCount: controller.properties.length,
+                      itemCount: list.length,
                       itemBuilder: (_, i) => _PropertyCard(
-                        property: controller.properties[i],
+                        property: list[i],
                         index: i,
                         dark: dark,
                       ),
@@ -497,6 +568,120 @@ class _FilterChip extends StatelessWidget {
 }
 
 // ─── Property Card ────────────────────────────────────────────────────────────
+// ─── Purchase Mode Tab Item ───────────────────────────────────────────────────
+class _PurchaseTabItem extends StatelessWidget {
+  const _PurchaseTabItem({
+    required this.label,
+    required this.icon,
+    required this.count,
+    required this.isActive,
+    required this.activeColor,
+    required this.dark,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final int count;
+  final bool isActive;
+  final Color activeColor;
+  final bool dark;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final textInactive = dark
+        ? const Color(0xFF94A3B8)
+        : const Color(0xFF64748B);
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 6),
+          decoration: BoxDecoration(
+            gradient: isActive
+                ? LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [activeColor, activeColor.withOpacity(0.82)],
+                  )
+                : null,
+            color: isActive ? null : Colors.transparent,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: isActive
+                ? [
+                    BoxShadow(
+                      color: activeColor.withOpacity(0.4),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    icon,
+                    size: 13.5,
+                    color: isActive ? Colors.white : textInactive,
+                  ),
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        color: isActive ? Colors.white : textInactive,
+                        fontSize: 11,
+                        fontWeight: isActive
+                            ? FontWeight.w900
+                            : FontWeight.w600,
+                        letterSpacing: -0.2,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 3),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 7,
+                  vertical: 1.5,
+                ),
+                decoration: BoxDecoration(
+                  color: isActive
+                      ? Colors.white.withOpacity(0.24)
+                      : (dark
+                            ? const Color(0xFF1E293B)
+                            : const Color(0xFFE2E8F0)),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '$count',
+                  style: TextStyle(
+                    color: isActive ? Colors.white : textInactive,
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Modern Luxury Property Card ──────────────────────────────────────────────
 class _PropertyCard extends StatefulWidget {
   const _PropertyCard({
     required this.property,
@@ -526,10 +711,10 @@ class _PropertyCardState extends State<_PropertyCard>
     );
     _f = CurvedAnimation(parent: _c, curve: Curves.easeOut);
     _s = Tween(
-      begin: const Offset(0, 0.06),
+      begin: const Offset(0, 0.05),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _c, curve: Curves.easeOutCubic));
-    Future.delayed(Duration(milliseconds: 50 * widget.index), () {
+    Future.delayed(Duration(milliseconds: 40 * widget.index), () {
       if (mounted) _c.forward();
     });
   }
@@ -544,17 +729,25 @@ class _PropertyCardState extends State<_PropertyCard>
   Widget build(BuildContext context) {
     final p = widget.property;
     final dark = widget.dark;
-    final cardBg = dark ? const Color(0xFF0E1626) : Colors.white;
-    final tp = dark ? const Color(0xFFEDF0FF) : const Color(0xFF1A2340);
-    final ts = dark ? const Color(0xFF8A95B0) : const Color(0xFF6B7280);
-    final chipBg = dark ? const Color(0xFF1A2B45) : const Color(0xFFF0F2F8);
+    final cardBg = dark ? const Color(0xFF0F172A) : Colors.white;
+    final tp = dark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A);
+    final ts = dark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final chipBg = dark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9);
+    final borderColor = dark
+        ? const Color(0xFF1E293B)
+        : const Color(0xFFE2E8F0);
+
+    final available = p.availableBricks;
+    final pct = p.soldPercent;
+    final totalIrr = (p.expectedRentalYield + p.expectedAppreciation)
+        .toStringAsFixed(1);
 
     return FadeTransition(
       opacity: _f,
       child: SlideTransition(
         position: _s,
         child: Padding(
-          padding: const EdgeInsets.only(bottom: 14),
+          padding: const EdgeInsets.only(bottom: 20),
           child: GestureDetector(
             onTapDown: (_) {
               HapticFeedback.lightImpact();
@@ -566,46 +759,49 @@ class _PropertyCardState extends State<_PropertyCard>
             },
             onTapCancel: () => setState(() => _pressed = false),
             child: AnimatedScale(
-              scale: _pressed ? 0.975 : 1.0,
+              scale: _pressed ? 0.98 : 1.0,
               duration: const Duration(milliseconds: 120),
               child: Container(
                 decoration: BoxDecoration(
                   color: cardBg,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                    color: dark
-                        ? const Color(0xFF1A2B45)
-                        : const Color(0xFFE2E6F0).withOpacity(0.6),
+                    color: p.isDirectBuyOnly
+                        ? const Color(
+                            0xFF6366F1,
+                          ).withOpacity(dark ? 0.35 : 0.25)
+                        : borderColor,
+                    width: 1.2,
                   ),
                   boxShadow: _pressed
                       ? []
                       : [
                           BoxShadow(
-                            color: Colors.black.withOpacity(dark ? 0.4 : 0.08),
-                            blurRadius: 18,
-                            offset: const Offset(0, 7),
-                            spreadRadius: -3,
+                            color: Colors.black.withOpacity(dark ? 0.45 : 0.08),
+                            blurRadius: 22,
+                            offset: const Offset(0, 8),
+                            spreadRadius: -2,
                           ),
                           if (!dark)
                             BoxShadow(
                               color: Colors.white.withOpacity(0.9),
-                              blurRadius: 3,
+                              blurRadius: 4,
                               offset: const Offset(-1, -1),
                             ),
                         ],
                 ),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Image
+                    // ── 1. Hero Image ──────────────────────────────────────
                     Stack(
                       children: [
                         ClipRRect(
-                          borderRadius: const BorderRadius.horizontal(
-                            left: Radius.circular(20),
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(23),
                           ),
-                          child: SizedBox(
-                            width: 110,
-                            height: 110,
+                          child: AspectRatio(
+                            aspectRatio: 16 / 9.5,
                             child: p.coverImage != null
                                 ? Image.network(
                                     p.coverImage!,
@@ -615,139 +811,582 @@ class _PropertyCardState extends State<_PropertyCard>
                                 : _ph(dark),
                           ),
                         ),
-                        if (p.featured)
-                          Positioned(
-                            top: 8,
-                            left: 8,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 7,
-                                vertical: 3,
+                        // Dark subtle gradient overlay
+                        Positioned.fill(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(23),
                               ),
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    AppColors.accent,
-                                    AppColors.accentLight,
-                                  ],
-                                ),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Text(
-                                'Featured',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w700,
-                                ),
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.black.withOpacity(0.45),
+                                  Colors.transparent,
+                                  Colors.black.withOpacity(0.75),
+                                ],
+                                stops: const [0.0, 0.45, 1.0],
                               ),
                             ),
                           ),
+                        ),
+
+                        // Top Badges
+                        Positioned(
+                          top: 12,
+                          left: 12,
+                          right: 12,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  if (p.featured) ...[
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4.5,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        gradient: const LinearGradient(
+                                          colors: [
+                                            Color(0xFFD97706),
+                                            Color(0xFFF59E0B),
+                                          ],
+                                        ),
+                                        borderRadius: BorderRadius.circular(8),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: const Color(
+                                              0xFFF59E0B,
+                                            ).withOpacity(0.4),
+                                            blurRadius: 8,
+                                          ),
+                                        ],
+                                      ),
+                                      child: const Text(
+                                        '★ FEATURED',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 9.5,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                  ],
+                                  // Purchase Mode Badge
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4.5,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.85),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: p.isDirectBuyOnly
+                                            ? const Color(0xFF818CF8)
+                                            : (p.isBricksOnly
+                                                  ? const Color(0xFF34D399)
+                                                  : AppColors.accent),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          p.isDirectBuyOnly
+                                              ? Icons.business_rounded
+                                              : (p.isBricksOnly
+                                                    ? Icons.grid_view_rounded
+                                                    : Icons.stars_rounded),
+                                          color: p.isDirectBuyOnly
+                                              ? const Color(0xFF818CF8)
+                                              : (p.isBricksOnly
+                                                    ? const Color(0xFF34D399)
+                                                    : AppColors.accent),
+                                          size: 11,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          p.isDirectBuyOnly
+                                              ? 'Full Ownership (100%)'
+                                              : (p.isBricksOnly
+                                                    ? 'Bricks Fractional'
+                                                    : 'Bricks + Full Buy'),
+                                          style: TextStyle(
+                                            color: p.isDirectBuyOnly
+                                                ? const Color(0xFFC7D2FE)
+                                                : (p.isBricksOnly
+                                                      ? const Color(0xFFA7F3D0)
+                                                      : const Color(
+                                                          0xFFFDE68A,
+                                                        )),
+                                            fontSize: 9.5,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              // Property Type Chip on Top Right
+                              if (p.propertyType != null)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.65),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: Colors.white24),
+                                  ),
+                                  child: Text(
+                                    p.propertyType!,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+
+                        // Location at bottom of image
+                        Positioned(
+                          bottom: 12,
+                          left: 14,
+                          right: 14,
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.5),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.location_on_rounded,
+                                  color: AppColors.accent,
+                                  size: 13,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  p.location.display.isNotEmpty
+                                      ? p.location.display
+                                      : (p.location.city ?? 'India'),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w600,
+                                    shadows: [
+                                      Shadow(
+                                        color: Colors.black,
+                                        blurRadius: 4,
+                                      ),
+                                    ],
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
 
-                    // Content
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 12, 10, 12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              p.title,
-                              style: TextStyle(
-                                color: tp,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                    // ── 2. Card Body ───────────────────────────────────────
+                    Padding(
+                      padding: const EdgeInsets.all(18),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Title
+                          Text(
+                            p.title,
+                            style: TextStyle(
+                              color: tp,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.3,
                             ),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.location_on_outlined,
-                                  color: dark
-                                      ? const Color(0xFF8A95B0)
-                                      : AppColors.inputIcon,
-                                  size: 12,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 8),
+
+                          // Specs chips
+                          Row(
+                            children: [
+                              if (p.bhk != null) ...[
+                                _MiniChip(
+                                  icon: Icons.bed_outlined,
+                                  label: p.bhk!,
+                                  bg: chipBg,
+                                  tc: ts,
                                 ),
-                                const SizedBox(width: 2),
+                                const SizedBox(width: 6),
+                              ],
+                              if (p.area != null) ...[
+                                _MiniChip(
+                                  icon: Icons.square_foot,
+                                  label: '${p.area} sqft',
+                                  bg: chipBg,
+                                  tc: ts,
+                                ),
+                                const SizedBox(width: 6),
+                              ],
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3.5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(
+                                    0xFF10B981,
+                                  ).withOpacity(dark ? 0.2 : 0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.verified_rounded,
+                                      color: Color(0xFF10B981),
+                                      size: 11,
+                                    ),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'Verified SPV',
+                                      style: TextStyle(
+                                        color: Color(0xFF10B981),
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+
+                          // ── 3-Column Financial Matrix Bar ──────────────────────
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: dark
+                                  ? const Color(0xFF141E30)
+                                  : const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: dark
+                                    ? const Color(0xFF1E2F48)
+                                    : const Color(0xFFE2E8F0),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
                                 Expanded(
-                                  child: Text(
-                                    p.location.city ?? 'India',
-                                    style: TextStyle(color: ts, fontSize: 11),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        'RENTAL YIELD',
+                                        style: TextStyle(
+                                          color: ts,
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 3),
+                                      Text(
+                                        '${p.expectedRentalYield}% p.a.',
+                                        style: const TextStyle(
+                                          color: Color(0xFF10B981),
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  height: 24,
+                                  width: 1,
+                                  color: dark
+                                      ? const Color(0xFF1E2F48)
+                                      : const Color(0xFFE2E8F0),
+                                ),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        'GROWTH',
+                                        style: TextStyle(
+                                          color: ts,
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 3),
+                                      Text(
+                                        '${p.expectedAppreciation}% p.a.',
+                                        style: const TextStyle(
+                                          color: AppColors.accent,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  height: 24,
+                                  width: 1,
+                                  color: dark
+                                      ? const Color(0xFF1E2F48)
+                                      : const Color(0xFFE2E8F0),
+                                ),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        'TARGET IRR',
+                                        style: TextStyle(
+                                          color: ts,
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 3),
+                                      Text(
+                                        '$totalIrr% IRR',
+                                        style: const TextStyle(
+                                          color: Color(0xFF38BDF8),
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+
+                          // Funding Progress Bar (if bricks enabled)
+                          if (p.allowsBricks && (p.totalBricks ?? 0) > 0) ...[
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  '${pct.toStringAsFixed(0)}% Funded',
+                                  style: TextStyle(
+                                    color: ts,
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                Text(
+                                  available > 0
+                                      ? '$available bricks left'
+                                      : 'Fully Funded',
+                                  style: TextStyle(
+                                    color: available > 0
+                                        ? AppColors.accent
+                                        : const Color(0xFF10B981),
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 6),
-                            Text(
-                              p.formattedPrice,
-                              style: const TextStyle(
-                                color: AppColors.accent,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w800,
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Container(
+                                height: 7,
+                                color: dark
+                                    ? const Color(0xFF1E293B)
+                                    : const Color(0xFFE2E8F0),
+                                child: FractionallySizedBox(
+                                  alignment: Alignment.centerLeft,
+                                  widthFactor: (pct / 100).clamp(0.0, 1.0),
+                                  child: Container(
+                                    decoration: const BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          Color(0xFFFFB300),
+                                          DarkColors.goldLight,
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
-                            const SizedBox(height: 6),
-                            SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Row(
-                                children: [
-                                  if (p.bhk != null) ...[
-                                    _MiniChip(
-                                      icon: Icons.bed_outlined,
-                                      label: p.bhk!,
-                                      bg: chipBg,
-                                      tc: ts,
-                                    ),
-                                    const SizedBox(width: 6),
-                                  ],
-                                  if (p.area != null) ...[
-                                    _MiniChip(
-                                      icon: Icons.square_foot,
-                                      label: '${p.area} sqft',
-                                      bg: chipBg,
-                                      tc: ts,
-                                    ),
-                                    const SizedBox(width: 6),
-                                  ],
-                                  if (p.propertyType != null)
-                                    _MiniChip(
-                                      icon: Icons.home_outlined,
-                                      label: p.propertyType!,
-                                      bg: chipBg,
-                                      tc: ts,
-                                    ),
-                                ],
-                              ),
-                            ),
+                            const SizedBox(height: 14),
                           ],
-                        ),
-                      ),
-                    ),
 
-                    Padding(
-                      padding: const EdgeInsets.only(right: 12),
-                      child: Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          color: AppColors.accent.withOpacity(
-                            dark ? 0.15 : 0.08,
+                          Divider(
+                            height: 1,
+                            color: borderColor.withOpacity(0.7),
                           ),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.arrow_forward_ios_rounded,
-                          color: AppColors.accent,
-                          size: 13,
-                        ),
+                          const SizedBox(height: 14),
+
+                          // ── 3. Price & Action Footer ───────────────────
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (p.allowsBricks &&
+                                        p.brickPrice != null) ...[
+                                      Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.baseline,
+                                        textBaseline: TextBaseline.alphabetic,
+                                        children: [
+                                          Flexible(
+                                            child: FittedBox(
+                                              fit: BoxFit.scaleDown,
+                                              alignment: Alignment.centerLeft,
+                                              child: Text(
+                                                '₹${p.brickPrice!.toLocaleString()}',
+                                                style: const TextStyle(
+                                                  color: AppColors.accent,
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.w900,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          Text(
+                                            ' / brick',
+                                            style: TextStyle(
+                                              color: ts,
+                                              fontSize: 11.5,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Valuation: ${p.formattedPrice}',
+                                        style: TextStyle(
+                                          color: ts,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ] else ...[
+                                      FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        alignment: Alignment.centerLeft,
+                                        child: Text(
+                                          p.formattedPrice,
+                                          style: const TextStyle(
+                                            color: Color(0xFF6366F1),
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      const Text(
+                                        '100% Full Ownership',
+                                        style: TextStyle(
+                                          color: Color(0xFF10B981),
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+
+                              // Luxury CTA Button
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: p.isDirectBuyOnly
+                                        ? const [
+                                            Color(0xFF6366F1),
+                                            Color(0xFF4F46E5),
+                                          ]
+                                        : const [
+                                            AppColors.accent,
+                                            AppColors.accentLight,
+                                          ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(14),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color:
+                                          (p.isDirectBuyOnly
+                                                  ? const Color(0xFF6366F1)
+                                                  : AppColors.accent)
+                                              .withOpacity(0.4),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      p.isDirectBuyOnly
+                                          ? 'Buyout'
+                                          : 'Invest Now',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 5),
+                                    const Icon(
+                                      Icons.arrow_forward_rounded,
+                                      color: Colors.white,
+                                      size: 15,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -765,7 +1404,7 @@ class _PropertyCardState extends State<_PropertyCard>
     child: Icon(
       Icons.home_outlined,
       color: dark ? const Color(0xFF4A5C7A) : AppColors.inputIcon,
-      size: 32,
+      size: 40,
     ),
   );
 }
@@ -1370,4 +2009,11 @@ class _EmptyState extends StatelessWidget {
       ),
     );
   }
+}
+
+extension _IntExt on int {
+  String toLocaleString() => toString().replaceAllMapped(
+    RegExp(r'(\d+?)(?=(\d\d)+(\d)(?!\d))(\.\d+)?'),
+    (m) => '${m[1]},',
+  );
 }
