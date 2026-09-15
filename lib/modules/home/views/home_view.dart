@@ -120,6 +120,14 @@ class HomeView extends GetView<HomeController> {
                     dark: dark,
                   );
                 }),
+                const SizedBox(height: 32),
+
+                // ── How It Works (Interactive Partnership Calculator) ──
+                _HowItWorksSection(dark: dark),
+                const SizedBox(height: 32),
+
+                // ── Institutional & Banking Partners Strip ───────────────────
+                _PartnershipTrustStrip(dark: dark),
                 const SizedBox(height: 100),
               ],
             ),
@@ -1270,4 +1278,552 @@ class _RecommendedCard extends StatelessWidget {
       ),
     );
   }
+}
+
+
+// ══════════════════════════════════════════════════════════════════════
+// How It Works — Interactive Fractional Real Estate Partnership Calculator
+// ══════════════════════════════════════════════════════════════════════
+class _HowItWorksSection extends StatefulWidget {
+  final bool dark;
+  const _HowItWorksSection({required this.dark});
+
+  @override
+  State<_HowItWorksSection> createState() => _HowItWorksSectionState();
+}
+
+class _HowItWorksSectionState extends State<_HowItWorksSection> {
+  double _investAmount = 100000;
+  final double _propertyPrice = 10000000; // ₹1,00,00,000
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = widget.dark;
+    final cardBg = dark ? const Color(0xFF0E1626) : Colors.white;
+    final textP = dark ? const Color(0xFFEDF0FF) : AppColors.textPrimary;
+    final textS = dark ? const Color(0xFF8A95B0) : AppColors.textSecondary;
+    final borderC = dark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0);
+
+    final double partnershipPercent = (_investAmount / _propertyPrice) * 100;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'How it works',
+                style: TextStyle(
+                  color: textP,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.3,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  'FRACTIONAL LLP',
+                  style: TextStyle(
+                    color: Color(0xFF10B981),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Container(
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: borderC),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(dark ? 0.35 : 0.04),
+                  blurRadius: 18,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.all(22),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Top "You get X.XX% partnership"
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      'You get ',
+                      style: TextStyle(
+                        color: textS,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      '${partnershipPercent.toStringAsFixed(2)}%',
+                      style: const TextStyle(
+                        color: Color(0xFF10B981),
+                        fontSize: 34,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    Text(
+                      ' partnership',
+                      style: TextStyle(
+                        color: textS,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+
+                // Split: You invest | Property price
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'You invest',
+                            style: TextStyle(
+                              color: textS,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '₹${_investAmount.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}',
+                            style: TextStyle(
+                              color: textP,
+                              fontSize: 19,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      width: 1,
+                      height: 38,
+                      color: borderC,
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Property price',
+                            style: TextStyle(
+                              color: textS,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '₹1,00,00,000',
+                            style: TextStyle(
+                              color: textP,
+                              fontSize: 19,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                Text(
+                  'Your partnership = Investment amount ÷ Property price',
+                  style: TextStyle(
+                    color: textS.withOpacity(0.85),
+                    fontSize: 11.5,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // Interactive slider
+                SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    activeTrackColor: const Color(0xFF10B981),
+                    inactiveTrackColor: dark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+                    thumbColor: dark ? Colors.white : const Color(0xFF0E1626),
+                    overlayColor: const Color(0xFF10B981).withOpacity(0.18),
+                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
+                    trackHeight: 4,
+                  ),
+                  child: Slider(
+                    value: _investAmount,
+                    min: 10000,
+                    max: 1000000,
+                    divisions: 99,
+                    onChanged: (val) {
+                      setState(() {
+                        _investAmount = val;
+                      });
+                    },
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+                Divider(color: borderC, height: 1),
+                const SizedBox(height: 18),
+
+                // 3-step vertical timeline
+                _TimelineStep(
+                  number: '1',
+                  title: 'Vikaone Realty Series LLP',
+                  subtitle: 'holds the title of the property',
+                  dark: dark,
+                  isLast: false,
+                ),
+                _TimelineStep(
+                  number: '2',
+                  title: 'You get ${partnershipPercent.toStringAsFixed(2)}% partnership in this LLP',
+                  subtitle: 'Based on your investment contribution',
+                  dark: dark,
+                  isLast: false,
+                ),
+                _TimelineStep(
+                  number: '3',
+                  title: 'Your partnership is filed in MCA',
+                  subtitle: 'Vikaone does the filing on your behalf every quarter',
+                  dark: dark,
+                  isLast: true,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TimelineStep extends StatelessWidget {
+  final String number;
+  final String title;
+  final String subtitle;
+  final bool dark;
+  final bool isLast;
+
+  const _TimelineStep({
+    required this.number,
+    required this.title,
+    required this.subtitle,
+    required this.dark,
+    required this.isLast,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textP = dark ? const Color(0xFFEDF0FF) : AppColors.textPrimary;
+    final textS = dark ? const Color(0xFF8A95B0) : AppColors.textSecondary;
+    final dotBg = dark ? const Color(0xFF1E293B) : const Color(0xFFE6F4EA);
+    const dotText = Color(0xFF10B981);
+
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Column(
+            children: [
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: dotBg,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3)),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  number,
+                  style: const TextStyle(
+                    color: dotText,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              if (!isLast)
+                Expanded(
+                  child: Container(
+                    width: 1.5,
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    decoration: BoxDecoration(
+                      color: dark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+                      borderRadius: BorderRadius.circular(1),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: isLast ? 0 : 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: textP,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: textS,
+                      fontSize: 12,
+                      height: 1.35,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// Institutional & Banking Partners Strip (DigiLocker, RBL, Razorpay, IDFC, Central Bank)
+// ══════════════════════════════════════════════════════════════════════
+class _PartnershipTrustStrip extends StatelessWidget {
+  final bool dark;
+  const _PartnershipTrustStrip({required this.dark});
+
+  @override
+  Widget build(BuildContext context) {
+    final textP = dark ? const Color(0xFFEDF0FF) : AppColors.textPrimary;
+    final textS = dark ? const Color(0xFF8A95B0) : AppColors.textSecondary;
+    final cardBg = dark ? const Color(0xFF0E1626) : Colors.white;
+    final borderC = dark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0);
+
+    final partners = [
+      _PartnerBadge(
+        name: 'Razorpay',
+        imagePath: 'assets/images/partners/razorpay.webp',
+        desc: 'Escrow Payment Gateway',
+        isAsset: true,
+      ),
+      _PartnerBadge(
+        name: 'Central Bank',
+        imagePath: 'assets/images/partners/central_bank.jpg',
+        desc: 'Institutional Banking Partner',
+        isAsset: true,
+      ),
+      _PartnerBadge(
+        name: 'ICICI Bank',
+        imagePath: 'assets/images/partners/icici_mutual.jpg',
+        desc: 'Trustee Escrow Services',
+        isAsset: true,
+      ),
+      _PartnerBadge(
+        name: 'DigiLocker',
+        desc: 'Govt. Verified Document Vault',
+        icon: Icons.folder_shared_rounded,
+        iconColor: const Color(0xFF4F46E5),
+      ),
+      _PartnerBadge(
+        name: 'Universal Trusteeship',
+        desc: 'SEBI Registered Custodian',
+        icon: Icons.assured_workload_rounded,
+        iconColor: const Color(0xFFD97706),
+      ),
+      _PartnerBadge(
+        name: 'RBL Bank',
+        desc: 'Banking Escrow & Clearing',
+        icon: Icons.account_balance_rounded,
+        iconColor: const Color(0xFFDC2626),
+      ),
+      _PartnerBadge(
+        name: 'SEBI Securities',
+        imagePath: 'assets/images/partners/SEBI_securities.png',
+        desc: 'Regulatory Investor Protection',
+        isAsset: true,
+      ),
+      _PartnerBadge(
+        name: 'NSE / BSE',
+        imagePath: 'assets/images/partners/NSE.png',
+        desc: 'Securities & Market Custody',
+        isAsset: true,
+      ),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF3B82F6).withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.verified_user_rounded,
+                  color: Color(0xFF3B82F6),
+                  size: 16,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Institutional & Banking Partners',
+                style: TextStyle(
+                  color: textP,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Your investments are backed by institutional custodians, trustees, and regulated banks.',
+            style: TextStyle(
+              color: textS,
+              fontSize: 12,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            height: 72,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              itemCount: partners.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              itemBuilder: (context, index) {
+                final p = partners[index];
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: cardBg,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: borderC),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(dark ? 0.2 : 0.03),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (p.isAsset && p.imagePath != null)
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: Image.asset(
+                            p.imagePath!,
+                            height: 36,
+                            width: 52,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) => const Icon(
+                              Icons.account_balance_rounded,
+                              color: Color(0xFF3B82F6),
+                              size: 26,
+                            ),
+                          ),
+                        )
+                      else
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: (p.iconColor ?? const Color(0xFF3B82F6)).withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            p.icon ?? Icons.account_balance_rounded,
+                            color: p.iconColor ?? const Color(0xFF3B82F6),
+                            size: 20,
+                          ),
+                        ),
+                      const SizedBox(width: 10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            p.name,
+                            style: TextStyle(
+                              color: textP,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text(
+                            p.desc,
+                            style: TextStyle(
+                              color: textS,
+                              fontSize: 10.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PartnerBadge {
+  final String name;
+  final String desc;
+  final String? imagePath;
+  final IconData? icon;
+  final Color? iconColor;
+  final bool isAsset;
+
+  _PartnerBadge({
+    required this.name,
+    required this.desc,
+    this.imagePath,
+    this.icon,
+    this.iconColor,
+    this.isAsset = false,
+  });
 }

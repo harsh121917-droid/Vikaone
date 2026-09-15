@@ -1,3 +1,5 @@
+import 'help_support_view.dart';
+import 'policy_detail_view.dart';
 import '../../home/controllers/main_shell_controller.dart';
 import '../../investments/controllers/investments_controller.dart';
 import 'dart:ui';
@@ -937,6 +939,111 @@ class _MenuSection extends StatelessWidget {
           ],
           const SizedBox(height: 20),
 
+          const SizedBox(height: 16),
+
+          // ── Help & Support ──────────────────────────────────────────
+          _QuickCard(
+            icon: Icons.support_agent_rounded,
+            label: 'Help & Support',
+            subtitle: 'Hotline, WhatsApp, FAQs & query tickets',
+            color: const Color(0xFF38BDF8),
+            dark: dark,
+            onTap: () => Get.to(() => const HelpSupportView()),
+            wide: true,
+          ),
+          const SizedBox(height: 14),
+
+          // ── Legal Policies & Agreements Group ───────────────────────
+          Container(
+            decoration: BoxDecoration(
+              color: dark ? const Color(0xFF0F1829) : Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: dark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(dark ? 0.35 : 0.04),
+                  blurRadius: 14,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 16, 18, 8),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(7),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6366F1).withOpacity(dark ? 0.25 : 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.gavel_rounded, color: Color(0xFF818CF8), size: 18),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Legal & Policies',
+                        style: TextStyle(
+                          color: dark ? const Color(0xFFEDF0FF) : const Color(0xFF1A2340),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                _PolicyRowItem(
+                  icon: Icons.handshake_outlined,
+                  title: 'Investor Agreement',
+                  subtitle: 'Framework SPV & LLP Terms',
+                  dark: dark,
+                  onTap: () => Get.to(() => const PolicyDetailView(
+                    slug: 'investor-agreement',
+                    defaultTitle: 'Investor Agreement',
+                  )),
+                ),
+                _PolicyRowItem(
+                  icon: Icons.privacy_tip_outlined,
+                  title: 'Privacy Policy',
+                  subtitle: 'Data protection & security guidelines',
+                  dark: dark,
+                  onTap: () => Get.to(() => const PolicyDetailView(
+                    slug: 'privacy-policy',
+                    defaultTitle: 'Privacy Policy',
+                  )),
+                ),
+                _PolicyRowItem(
+                  icon: Icons.article_outlined,
+                  title: 'Terms & Conditions',
+                  subtitle: 'Platform usage & governance rules',
+                  dark: dark,
+                  onTap: () => Get.to(() => const PolicyDetailView(
+                    slug: 'terms-conditions',
+                    defaultTitle: 'Terms & Conditions',
+                  )),
+                ),
+                _PolicyRowItem(
+                  icon: Icons.assignment_return_outlined,
+                  title: 'Refund & Cancellation Policy',
+                  subtitle: 'Cooling-off & escrow refund rules',
+                  dark: dark,
+                  isLast: true,
+                  onTap: () => Get.to(() => const PolicyDetailView(
+                    slug: 'refund-cancellation',
+                    defaultTitle: 'Refund & Cancellation Policy',
+                  )),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
           // Theme toggle
           _ThemeCard(dark: dark),
           const SizedBox(height: 12),
@@ -1523,6 +1630,79 @@ class _LogoutCardState extends State<_LogoutCard>
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Policy Row Item ─────────────────────────────────────────────────────────
+class _PolicyRowItem extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool dark;
+  final bool isLast;
+  final VoidCallback onTap;
+
+  const _PolicyRowItem({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.dark,
+    this.isLast = false,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: isLast
+          ? const BorderRadius.vertical(bottom: Radius.circular(20))
+          : BorderRadius.zero,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: dark ? const Color(0xFF162032) : const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: dark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), size: 18),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: dark ? const Color(0xFFEDF0FF) : const Color(0xFF1A2340),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: dark ? const Color(0xFF8A95B0) : const Color(0xFF6B7280),
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: dark ? const Color(0xFF475569) : const Color(0xFFCBD5E1),
+              size: 20,
+            ),
+          ],
         ),
       ),
     );

@@ -832,7 +832,7 @@ class _PropertyCardState extends State<_PropertyCard>
                           ),
                         ),
 
-                        // Top Badges
+                        // Top Pills (Location & Potential Return)
                         Positioned(
                           top: 12,
                           left: 12,
@@ -840,168 +840,82 @@ class _PropertyCardState extends State<_PropertyCard>
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Row(
-                                children: [
-                                  if (p.featured) ...[
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4.5,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        gradient: const LinearGradient(
-                                          colors: [
-                                            Color(0xFFD97706),
-                                            Color(0xFFF59E0B),
-                                          ],
-                                        ),
-                                        borderRadius: BorderRadius.circular(8),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: const Color(
-                                              0xFFF59E0B,
-                                            ).withOpacity(0.4),
-                                            blurRadius: 8,
-                                          ),
-                                        ],
-                                      ),
-                                      child: const Text(
-                                        '★ FEATURED',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 9.5,
-                                          fontWeight: FontWeight.w900,
-                                          letterSpacing: 0.5,
-                                        ),
-                                      ),
+                              // Location Pill
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 11,
+                                  vertical: 5.5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.2),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
                                     ),
-                                    const SizedBox(width: 6),
                                   ],
-                                  // Purchase Mode Badge
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4.5,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withOpacity(0.85),
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                        color: p.isDirectBuyOnly
-                                            ? const Color(0xFF818CF8)
-                                            : (p.isBricksOnly
-                                                  ? const Color(0xFF34D399)
-                                                  : AppColors.accent),
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          p.isDirectBuyOnly
-                                              ? Icons.business_rounded
-                                              : (p.isBricksOnly
-                                                    ? Icons.grid_view_rounded
-                                                    : Icons.stars_rounded),
-                                          color: p.isDirectBuyOnly
-                                              ? const Color(0xFF818CF8)
-                                              : (p.isBricksOnly
-                                                    ? const Color(0xFF34D399)
-                                                    : AppColors.accent),
-                                          size: 11,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          p.isDirectBuyOnly
-                                              ? 'Full Ownership (100%)'
-                                              : (p.isBricksOnly
-                                                    ? 'Bricks Fractional'
-                                                    : 'Bricks + Full Buy'),
-                                          style: TextStyle(
-                                            color: p.isDirectBuyOnly
-                                                ? const Color(0xFFC7D2FE)
-                                                : (p.isBricksOnly
-                                                      ? const Color(0xFFA7F3D0)
-                                                      : const Color(
-                                                          0xFFFDE68A,
-                                                        )),
-                                            fontSize: 9.5,
-                                            fontWeight: FontWeight.w800,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-
-                              // Property Type Chip on Top Right
-                              if (p.propertyType != null)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.65),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: Colors.white24),
-                                  ),
-                                  child: Text(
-                                    p.propertyType!,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w700,
-                                    ),
+                                ),
+                                child: Text(
+                                  p.location.city ?? 'Navi Mumbai',
+                                  style: const TextStyle(
+                                    color: Color(0xFF0F172A),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
                                   ),
                                 ),
+                              ),
+                              // Potential Return Pill
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 11,
+                                  vertical: 5.5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.2),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Text(
+                                  '${((p.expectedAppreciation * 4) + (p.expectedRentalYield * 4)).round()}% Potential Return',
+                                  style: const TextStyle(
+                                    color: Color(0xFF0F172A),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
                         ),
 
-                        // Location at bottom of image
+                        // Bottom Banner: Investment starts from ₹XX,XXX
                         Positioned(
                           bottom: 12,
                           left: 14,
                           right: 14,
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.5),
-                                  shape: BoxShape.circle,
+                          child: Text(
+                            'Investment starts from ₹${(p.brickPrice ?? 10000).toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 15.5,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.2,
+                              shadows: [
+                                Shadow(
+                                  color: Color(0xCC000000),
+                                  blurRadius: 8,
+                                  offset: Offset(0, 2),
                                 ),
-                                child: const Icon(
-                                  Icons.location_on_rounded,
-                                  color: AppColors.accent,
-                                  size: 13,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Text(
-                                  p.location.display.isNotEmpty
-                                      ? p.location.display
-                                      : (p.location.city ?? 'India'),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w600,
-                                    shadows: [
-                                      Shadow(
-                                        color: Colors.black,
-                                        blurRadius: 4,
-                                      ),
-                                    ],
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ],
