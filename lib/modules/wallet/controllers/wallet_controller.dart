@@ -4,25 +4,23 @@ import 'package:get/get.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:real_estate/core/services/auth_service.dart';
 import 'package:real_estate/data/repositories/wallet_repository.dart';
-import 'package:real_estate/modules/digi_gold/controllers/digi_gold_controller.dart';
 
 class WalletController extends GetxController {
   static WalletController get to => Get.find();
 
-  final _repo = WalletRepository();
-  late Razorpay _razorpay;
+  final WalletRepository _repo = Get.isRegistered<WalletRepository>()
+      ? Get.find<WalletRepository>()
+      : Get.put(WalletRepository());
+  late final Razorpay _razorpay;
 
-  // ── Observables ────────────────────────────────────────────────────────────
   final isLoading = false.obs;
-  final isBuying = false.obs;
-  final isSelling = false.obs;
   final isAdding = false.obs;
   final isWithdrawing = false.obs;
-  final wallet = Rxn<WalletModel>();
-  final banks = <BankAccountModel>[].obs;
   final errorMsg = ''.obs;
 
-  // Pending action after Razorpay
+  final wallet = Rxn<WalletModel>();
+  final banks = <BankAccountModel>[].obs;
+
   double? _pendingAddAmt;
 
   @override
@@ -73,8 +71,8 @@ class WalletController extends GetxController {
         'amount': data['order']['amount'],
         'currency': 'INR',
         'order_id': data['order']['id'],
-        'name': 'Bharat SQFT Wallet',
-        'description': 'Add ₹${amount.toStringAsFixed(0)} to wallet',
+        'name': 'Vika DRX Wallet',
+        'description': 'Add ₹${amount.toStringAsFixed(0)} to Vika DRX wallet',
         'prefill': {'name': user?.name ?? '', 'email': user?.email ?? ''},
         'theme': {'color': '#D4A017'},
       };
@@ -105,7 +103,7 @@ class WalletController extends GetxController {
         await loadWallet();
         Get.snackbar(
           'Money Added! 💚',
-          '₹${_pendingAddAmt?.toStringAsFixed(0)} added to your wallet',
+          '₹${_pendingAddAmt?.toStringAsFixed(0)} added to your Vika DRX wallet',
           backgroundColor: const Color(0xFF2ecc71),
           colorText: Colors.white,
           snackPosition: SnackPosition.BOTTOM,
@@ -126,7 +124,6 @@ class WalletController extends GetxController {
   void _onPayError(PaymentFailureResponse r) {
     _pendingAddAmt = null;
     if (r.code != 0) {
-      // 0 = user cancelled
       Get.snackbar(
         'Payment Failed',
         r.message ?? 'Payment was not completed',
@@ -139,65 +136,7 @@ class WalletController extends GetxController {
 
   void _onExternalWallet(ExternalWalletResponse r) {}
 
-  // ── 3. Buy Gold from Wallet ────────────────────────────────────────────────
-  Future<bool> buyGold({double? amount, double? grams}) async {
-    try {
-      isBuying.value = true;
-      final data = await _repo.buyGoldFromWallet(amount: amount, grams: grams);
-      await loadWallet();
-      if (Get.isRegistered<GoldController>()) await GoldController.to.loadAll();
-      Get.snackbar(
-        'Gold Purchased! 🥇',
-        '${(data['grams'] ?? 0).toStringAsFixed(4)}g added to your account',
-        backgroundColor: const Color(0xFFD4A017),
-        colorText: Colors.black,
-        snackPosition: SnackPosition.BOTTOM,
-      );
-      return true;
-    } on DioException catch (e) {
-      Get.snackbar(
-        'Purchase Failed',
-        e.response?.data?['message'] ?? 'Insufficient wallet balance',
-        backgroundColor: const Color(0xFFe74c3c),
-        colorText: Colors.white,
-        snackPosition: SnackPosition.BOTTOM,
-      );
-      return false;
-    } finally {
-      isBuying.value = false;
-    }
-  }
-
-  // ── 4. Sell Gold → Wallet ──────────────────────────────────────────────────
-  Future<bool> sellGold(double grams) async {
-    try {
-      isSelling.value = true;
-      final data = await _repo.sellGoldToWallet(grams);
-      await loadWallet();
-      if (Get.isRegistered<GoldController>()) await GoldController.to.loadAll();
-      Get.snackbar(
-        'Sell Order Placed! 💰',
-        '₹${data['sellValue']} will credit to wallet in 24h',
-        backgroundColor: const Color(0xFF3B82F6),
-        colorText: Colors.white,
-        snackPosition: SnackPosition.BOTTOM,
-      );
-      return true;
-    } on DioException catch (e) {
-      Get.snackbar(
-        'Sell Failed',
-        e.response?.data?['message'] ?? 'Failed',
-        backgroundColor: const Color(0xFFe74c3c),
-        colorText: Colors.white,
-        snackPosition: SnackPosition.BOTTOM,
-      );
-      return false;
-    } finally {
-      isSelling.value = false;
-    }
-  }
-
-  // ── 5. Withdraw ───────────────────────────────────────────────────────────
+  // ── 3. Withdraw ───────────────────────────────────────────────────────────
   Future<bool> withdraw(double amount, String bankAccountId) async {
     try {
       isWithdrawing.value = true;

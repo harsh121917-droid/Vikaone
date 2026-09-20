@@ -87,7 +87,7 @@ class WalletTxnModel {
     return '${d.day} ${months[d.month - 1]} ${d.year}';
   }
 
-  bool get isCredit => type == 'add' || type == 'gold_sell';
+  bool get isCredit => type == 'add' || type == 'drx_deposit' || type == 'brick_yield' || type == 'deposit' || type == 'manual_credit';
   bool get isSuccess => status == 'success';
 }
 

@@ -82,7 +82,12 @@ class PropertyModel {
   /// Extracts the 11-character YouTube video ID from youtubeUrl or videos array
   String? get youtubeVideoId {
     if (youtubeUrl == null || youtubeUrl!.trim().isEmpty) return null;
-    return extractYouTubeId(youtubeUrl!);
+    final id = extractYouTubeId(youtubeUrl!);
+    if (id == null) return null;
+    if (id == 'GDwvVlXmmjU') {
+      return 'xBNULnZNZg0'; // Fallback for deleted sample video
+    }
+    return id;
   }
 
   static String? extractYouTubeId(String url) {
@@ -91,7 +96,7 @@ class PropertyModel {
       return url;
     }
     final regExp = RegExp(
-      r'^(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})',
+      r'(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})',
       caseSensitive: false,
     );
     final match = regExp.firstMatch(url);

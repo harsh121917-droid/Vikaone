@@ -8,6 +8,9 @@
 // import 'modules/auth/controllers/auth_controller.dart';
 // import 'modules/auth/bindings/auth_binding.dart';
 // import 'routes/app_routes.dart';
+import 'package:get/get.dart';
+
+import 'data/repositories/wallet_repository.dart';
 
 // void main() async {
 //   WidgetsFlutterBinding.ensureInitialized();
@@ -29,7 +32,7 @@
 
 //     return Obx(
 //       () => GetMaterialApp(
-//         title: 'Bharat SQFT',
+//         title: 'Vika DRX',
 //         debugShowCheckedModeBanner: false,
 //         theme: AppTheme.light,
 //         darkTheme: AppTheme.dark,
@@ -60,6 +63,7 @@ void main() async {
   Get.put(AuthService(), permanent: true);
   Get.put(LockService(), permanent: true);
   Get.put(ThemeController(), permanent: true);
+  Get.put(WalletRepository(), permanent: true);
 
   runApp(const BharatSqftApp());
 }
@@ -123,7 +127,7 @@ class _BharatSqftAppState extends State<BharatSqftApp>
   Widget build(BuildContext context) {
     return Obx(
       () => GetMaterialApp(
-        title: 'Bharat SQFT',
+        title: 'Vika DRX',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
@@ -132,7 +136,10 @@ class _BharatSqftAppState extends State<BharatSqftApp>
             : ThemeMode.light,
         initialRoute: _initialRoute(),
         getPages: appPages,
-        initialBinding: BindingsBuilder(() => Get.put(AuthController())),
+        initialBinding: BindingsBuilder(() {
+          Get.put(AuthController());
+          Get.lazyPut<WalletRepository>(() => WalletRepository());
+        }),
       ),
     );
   }

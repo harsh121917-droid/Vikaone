@@ -793,113 +793,113 @@ class _BuyGoldViewState extends State<BuyGoldView> {
                     ],
                   ),
                   const SizedBox(width: 16),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: _valid && !WalletController.to.isBuying.value
-                          ? () async {
-                              HapticFeedback.mediumImpact();
-                              final ok = await WalletController.to.buyGold(
-                                amount: _amount,
-                              );
-                              if (ok) Get.back();
-                            }
-                          : (_amount >= 100.0 && !_hasEnoughBalance)
-                          ? () {
-                              HapticFeedback.mediumImpact();
-                              Get.snackbar(
-                                'Insufficient Balance',
-                                'Wallet has ₹${_walletBal.toStringAsFixed(2)}, need ₹${_total.toStringAsFixed(2)}. Add money first.',
-                                backgroundColor: const Color(0xFFe74c3c),
-                                colorText: Colors.white,
-                                snackPosition: SnackPosition.BOTTOM,
-                              );
-                            }
-                          : null,
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        height: 52,
-                        decoration: BoxDecoration(
-                          gradient: _valid
-                              ? const LinearGradient(
-                                  colors: [
-                                    Color(0xFFD4A017),
-                                    Color(0xFFFFD700),
-                                  ],
-                                )
-                              : null,
-                          color: _valid
-                              ? null
-                              : const Color(0xFFD4A017).withOpacity(0.3),
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: _valid
-                              ? [
-                                  BoxShadow(
-                                    color: const Color(
-                                      0xFFD4A017,
-                                    ).withOpacity(0.5),
-                                    blurRadius: 14,
-                                    offset: const Offset(0, 5),
-                                  ),
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.2),
-                                    blurRadius: 4,
-                                    offset: const Offset(2, 4),
-                                  ),
-                                ]
-                              : null,
-                        ),
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.lock_outline_rounded,
-                                    color: _valid
-                                        ? const Color(0xFF3D2B00)
-                                        : Colors.white38,
-                                    size: 16,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    WalletController.to.isBuying.value
-                                        ? 'Processing...'
-                                        : _valid
-                                        ? 'Buy Gold Securely'
-                                        : (_amount >= 100.0 &&
-                                              !_hasEnoughBalance)
-                                        ? 'Insufficient Balance'
-                                        : 'Min ₹${100.0.toInt()}',
-                                    style: TextStyle(
-                                      color: _valid
-                                          ? const Color(0xFF3D2B00)
-                                          : Colors.white38,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Wallet Balance: ₹${_walletBal.toStringAsFixed(0)}',
-                                style: TextStyle(
-                                  color: _valid
-                                      ? const Color(
-                                          0xFF3D2B00,
-                                        ).withOpacity(0.55)
-                                      : Colors.white24,
-                                  fontSize: 9,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+                  // Expanded(
+                  //   child: GestureDetector(
+                  //     onTap: _valid && !WalletController.to.isBuying.value
+                  //         ? () async {
+                  //             HapticFeedback.mediumImpact();
+                  //             final ok = await WalletController.to.buyGold(
+                  //               amount: _amount,
+                  //             );
+                  //             if (ok) Get.back();
+                  //           }
+                  //         : (_amount >= 100.0 && !_hasEnoughBalance)
+                  //         ? () {
+                  //             HapticFeedback.mediumImpact();
+                  //             Get.snackbar(
+                  //               'Insufficient Balance',
+                  //               'Wallet has ₹${_walletBal.toStringAsFixed(2)}, need ₹${_total.toStringAsFixed(2)}. Add money first.',
+                  //               backgroundColor: const Color(0xFFe74c3c),
+                  //               colorText: Colors.white,
+                  //               snackPosition: SnackPosition.BOTTOM,
+                  //             );
+                  //           }
+                  //         : null,
+                  //     child: AnimatedContainer(
+                  //       duration: const Duration(milliseconds: 200),
+                  //       height: 52,
+                  //       decoration: BoxDecoration(
+                  //         gradient: _valid
+                  //             ? const LinearGradient(
+                  //                 colors: [
+                  //                   Color(0xFFD4A017),
+                  //                   Color(0xFFFFD700),
+                  //                 ],
+                  //               )
+                  //             : null,
+                  //         color: _valid
+                  //             ? null
+                  //             : const Color(0xFFD4A017).withOpacity(0.3),
+                  //         borderRadius: BorderRadius.circular(14),
+                  //         boxShadow: _valid
+                  //             ? [
+                  //                 BoxShadow(
+                  //                   color: const Color(
+                  //                     0xFFD4A017,
+                  //                   ).withOpacity(0.5),
+                  //                   blurRadius: 14,
+                  //                   offset: const Offset(0, 5),
+                  //                 ),
+                  //                 BoxShadow(
+                  //                   color: Colors.black.withOpacity(0.2),
+                  //                   blurRadius: 4,
+                  //                   offset: const Offset(2, 4),
+                  //                 ),
+                  //               ]
+                  //             : null,
+                  //       ),
+                  //       child: Center(
+                  //         child: Column(
+                  //           mainAxisAlignment: MainAxisAlignment.center,
+                  //           children: [
+                  //             Row(
+                  //               mainAxisAlignment: MainAxisAlignment.center,
+                  //               children: [
+                  //                 Icon(
+                  //                   Icons.lock_outline_rounded,
+                  //                   color: _valid
+                  //                       ? const Color(0xFF3D2B00)
+                  //                       : Colors.white38,
+                  //                   size: 16,
+                  //                 ),
+                  //                 const SizedBox(width: 6),
+                  //                 Text(
+                  //                   WalletController.to.isBuying.value
+                  //                       ? 'Processing...'
+                  //                       : _valid
+                  //                       ? 'Buy Gold Securely'
+                  //                       : (_amount >= 100.0 &&
+                  //                             !_hasEnoughBalance)
+                  //                       ? 'Insufficient Balance'
+                  //                       : 'Min ₹${100.0.toInt()}',
+                  //                   style: TextStyle(
+                  //                     color: _valid
+                  //                         ? const Color(0xFF3D2B00)
+                  //                         : Colors.white38,
+                  //                     fontSize: 14,
+                  //                     fontWeight: FontWeight.w900,
+                  //                   ),
+                  //                 ),
+                  //               ],
+                  //             ),
+                  //             const SizedBox(height: 2),
+                  //             Text(
+                  //               'Wallet Balance: ₹${_walletBal.toStringAsFixed(0)}',
+                  //               style: TextStyle(
+                  //                 color: _valid
+                  //                     ? const Color(
+                  //                         0xFF3D2B00,
+                  //                       ).withOpacity(0.55)
+                  //                     : Colors.white24,
+                  //                 fontSize: 9,
+                  //               ),
+                  //             ),
+                  //           ],
+                  //         ),
+                  //       ),
+                  //     ),
+                  //   ),
+                  // ),
                 ],
               ),
               const SizedBox(height: 10),

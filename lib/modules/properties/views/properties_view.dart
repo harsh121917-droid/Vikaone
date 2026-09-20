@@ -217,6 +217,82 @@ class PropertiesView extends GetView<PropertiesController> {
               ),
               const SizedBox(height: 14),
 
+              // ── Quick Category Selector ──────────────────────────────────
+              SizedBox(
+                height: 38,
+                child: Obx(() {
+                  final sel = controller.selType.value;
+                  const categories = [
+                    {'label': 'All', 'type': ''},
+                    {'label': 'House', 'type': 'House'},
+                    {'label': 'Apartment', 'type': 'Apartment'},
+                    {'label': 'Villa', 'type': 'Villa'},
+                    {'label': 'Office', 'type': 'Office'},
+                    {'label': 'Land', 'type': 'Land'},
+                  ];
+                  return ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: categories.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (_, i) {
+                      final item = categories[i];
+                      final isSelected = sel.toLowerCase() == item['type']!.toLowerCase() ||
+                          (item['type']!.isEmpty && sel.isEmpty);
+                      return GestureDetector(
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          controller.selectCategory(item['type']!);
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            gradient: isSelected
+                                ? const LinearGradient(
+                                    colors: [AppColors.accent, AppColors.accentLight],
+                                  )
+                                : null,
+                            color: isSelected
+                                ? null
+                                : (dark ? const Color(0xFF0E1626) : Colors.white),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isSelected
+                                  ? Colors.transparent
+                                  : (dark ? const Color(0xFF1A2B45) : const Color(0xFFE2E6F0)),
+                            ),
+                            boxShadow: isSelected
+                                ? [
+                                    BoxShadow(
+                                      color: AppColors.accent.withOpacity(0.35),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                          child: Center(
+                            child: Text(
+                              item['label']!,
+                              style: TextStyle(
+                                color: isSelected
+                                    ? Colors.white
+                                    : (dark ? const Color(0xFFEDF0FF) : const Color(0xFF1A2340)),
+                                fontSize: 13,
+                                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                }),
+              ),
+              const SizedBox(height: 12),
+
               // ── Active filter chips ──────────────────────────────────────
               Obx(() {
                 final chips = _activeChips();

@@ -1,3 +1,9 @@
+import '../../properties/controllers/properties_controller.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../data/models/home_video_model.dart';
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -56,7 +62,18 @@ class HomeView extends GetView<HomeController> {
                 const SizedBox(height: 28),
                 _SectionHeader(
                   title: 'Browse by Category',
-                  onSeeAll: () {},
+                  onSeeAll: () {
+                    final propCtrl = Get.isRegistered<PropertiesController>()
+                        ? Get.find<PropertiesController>()
+                        : Get.put(PropertiesController());
+                    propCtrl.clearFilters();
+                    controller.selectedCategory.value = -1;
+                    if (Get.isRegistered<MainShellController>()) {
+                      Get.find<MainShellController>().changeTab(1);
+                    } else {
+                      Get.toNamed(AppRoutes.properties);
+                    }
+                  },
                   dark: dark,
                 ),
                 const SizedBox(height: 14),
@@ -64,7 +81,19 @@ class HomeView extends GetView<HomeController> {
                   () => _CategoryRow(
                     categories: _categories,
                     selected: controller.selectedCategory.value,
-                    onTap: (i) => controller.selectedCategory.value = i,
+                    onTap: (i) {
+                      controller.selectedCategory.value = i;
+                      final catName = _categories[i].label;
+                      final propCtrl = Get.isRegistered<PropertiesController>()
+                          ? Get.find<PropertiesController>()
+                          : Get.put(PropertiesController());
+                      propCtrl.filterByCategory(catName);
+                      if (Get.isRegistered<MainShellController>()) {
+                        Get.find<MainShellController>().changeTab(1);
+                      } else {
+                        Get.toNamed(AppRoutes.properties);
+                      }
+                    },
                     dark: dark,
                   ),
                 ),
@@ -107,6 +136,9 @@ class HomeView extends GetView<HomeController> {
                   );
                 }),
                 const SizedBox(height: 28),
+                const SizedBox(height: 28),
+                // ── YouTube Video Spotlights & Tours Slider ──
+                _HomeVideoSliderSection(controller: controller, dark: dark),
                 _SectionHeader(
                   title: 'Recommended For You',
                   onSeeAll: () {},
@@ -1619,66 +1651,113 @@ class _TimelineStep extends StatelessWidget {
 // ══════════════════════════════════════════════════════════════════════
 // Institutional & Banking Partners Strip (DigiLocker, RBL, Razorpay, IDFC, Central Bank)
 // ══════════════════════════════════════════════════════════════════════
-class _PartnershipTrustStrip extends StatelessWidget {
+class _PartnershipTrustStrip extends StatefulWidget {
   final bool dark;
   const _PartnershipTrustStrip({required this.dark});
 
   @override
-  Widget build(BuildContext context) {
-    final textP = dark ? const Color(0xFFEDF0FF) : AppColors.textPrimary;
-    final textS = dark ? const Color(0xFF8A95B0) : AppColors.textSecondary;
-    final cardBg = dark ? const Color(0xFF0E1626) : Colors.white;
-    final borderC = dark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0);
+  State<_PartnershipTrustStrip> createState() => _PartnershipTrustStripState();
+}
 
-    final partners = [
-      _PartnerBadge(
-        name: 'Razorpay',
-        imagePath: 'assets/images/partners/razorpay.webp',
-        desc: 'Escrow Payment Gateway',
-        isAsset: true,
-      ),
-      _PartnerBadge(
-        name: 'Central Bank',
-        imagePath: 'assets/images/partners/central_bank.jpg',
-        desc: 'Institutional Banking Partner',
-        isAsset: true,
-      ),
-      _PartnerBadge(
-        name: 'ICICI Bank',
-        imagePath: 'assets/images/partners/icici_mutual.jpg',
-        desc: 'Trustee Escrow Services',
-        isAsset: true,
-      ),
-      _PartnerBadge(
-        name: 'DigiLocker',
-        desc: 'Govt. Verified Document Vault',
-        icon: Icons.folder_shared_rounded,
-        iconColor: const Color(0xFF4F46E5),
-      ),
-      _PartnerBadge(
-        name: 'Universal Trusteeship',
-        desc: 'SEBI Registered Custodian',
-        icon: Icons.assured_workload_rounded,
-        iconColor: const Color(0xFFD97706),
-      ),
-      _PartnerBadge(
-        name: 'RBL Bank',
-        desc: 'Banking Escrow & Clearing',
-        icon: Icons.account_balance_rounded,
-        iconColor: const Color(0xFFDC2626),
-      ),
-      _PartnerBadge(
-        name: 'SEBI Securities',
-        imagePath: 'assets/images/partners/SEBI_securities.png',
-        desc: 'Regulatory Investor Protection',
-        isAsset: true,
-      ),
-      _PartnerBadge(
-        name: 'NSE / BSE',
-        imagePath: 'assets/images/partners/NSE.png',
-        desc: 'Securities & Market Custody',
-        isAsset: true,
-      ),
+class _PartnershipTrustStripState extends State<_PartnershipTrustStrip> {
+  late final ScrollController _scrollController;
+  Timer? _autoScrollTimer;
+  bool _isUserInteracting = false;
+
+  final List<_PartnerBadge> _basePartners = [
+    _PartnerBadge(
+      name: 'Razorpay',
+      imagePath: 'assets/images/partners/razorpay.webp',
+      desc: 'Escrow Payment Gateway',
+      isAsset: true,
+    ),
+    _PartnerBadge(
+      name: 'Central Bank',
+      imagePath: 'assets/images/partners/central_bank.jpg',
+      desc: 'Institutional Banking Partner',
+      isAsset: true,
+    ),
+    _PartnerBadge(
+      name: 'ICICI Bank',
+      imagePath: 'assets/images/partners/icici_mutual.jpg',
+      desc: 'Trustee Escrow Services',
+      isAsset: true,
+    ),
+    _PartnerBadge(
+      name: 'DigiLocker',
+      desc: 'Govt. Verified Document Vault',
+      icon: Icons.folder_shared_rounded,
+      iconColor: const Color(0xFF4F46E5),
+    ),
+    _PartnerBadge(
+      name: 'Universal Trusteeship',
+      desc: 'SEBI Registered Custodian',
+      icon: Icons.assured_workload_rounded,
+      iconColor: const Color(0xFFD97706),
+    ),
+    _PartnerBadge(
+      name: 'RBL Bank',
+      desc: 'Banking Escrow & Clearing',
+      icon: Icons.account_balance_rounded,
+      iconColor: const Color(0xFFDC2626),
+    ),
+    _PartnerBadge(
+      name: 'SEBI Securities',
+      imagePath: 'assets/images/partners/SEBI_securities.png',
+      desc: 'Regulatory Investor Protection',
+      isAsset: true,
+    ),
+    _PartnerBadge(
+      name: 'NSE / BSE',
+      imagePath: 'assets/images/partners/NSE.png',
+      desc: 'Securities & Market Custody',
+      isAsset: true,
+    ),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startAutoScroll();
+    });
+  }
+
+  void _startAutoScroll() {
+    _autoScrollTimer?.cancel();
+    _autoScrollTimer = Timer.periodic(const Duration(milliseconds: 30), (_) {
+      if (!_scrollController.hasClients || _isUserInteracting) return;
+      final max = _scrollController.position.maxScrollExtent;
+      final current = _scrollController.offset;
+      if (current >= max - 2) {
+        _scrollController.jumpTo(0);
+      } else {
+        _scrollController.jumpTo(current + 1.0);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _autoScrollTimer?.cancel();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textP = widget.dark ? const Color(0xFFEDF0FF) : AppColors.textPrimary;
+    final textS = widget.dark ? const Color(0xFF8A95B0) : AppColors.textSecondary;
+    final cardBg = widget.dark ? const Color(0xFF0E1626) : Colors.white;
+    final borderC = widget.dark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0);
+
+    // Repeat items to allow smooth continuous scrolling without sudden bounds
+    final repeatedPartners = [
+      ..._basePartners,
+      ..._basePartners,
+      ..._basePartners,
+      ..._basePartners,
     ];
 
     return Padding(
@@ -1721,87 +1800,93 @@ class _PartnershipTrustStrip extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 14),
-          SizedBox(
-            height: 72,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              itemCount: partners.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
-              itemBuilder: (context, index) {
-                final p = partners[index];
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: cardBg,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: borderC),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(dark ? 0.2 : 0.03),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (p.isAsset && p.imagePath != null)
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(6),
-                          child: Image.asset(
-                            p.imagePath!,
-                            height: 36,
-                            width: 52,
-                            fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) => const Icon(
-                              Icons.account_balance_rounded,
-                              color: Color(0xFF3B82F6),
-                              size: 26,
-                            ),
-                          ),
-                        )
-                      else
-                        Container(
-                          width: 38,
-                          height: 38,
-                          decoration: BoxDecoration(
-                            color: (p.iconColor ?? const Color(0xFF3B82F6)).withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Icon(
-                            p.icon ?? Icons.account_balance_rounded,
-                            color: p.iconColor ?? const Color(0xFF3B82F6),
-                            size: 20,
-                          ),
+          Listener(
+            onPointerDown: (_) => setState(() => _isUserInteracting = true),
+            onPointerUp: (_) => setState(() => _isUserInteracting = false),
+            onPointerCancel: (_) => setState(() => _isUserInteracting = false),
+            child: SizedBox(
+              height: 72,
+              child: ListView.separated(
+                controller: _scrollController,
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                itemCount: repeatedPartners.length,
+                separatorBuilder: (_, ___) => const SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  final p = repeatedPartners[index];
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: cardBg,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: borderC),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(widget.dark ? 0.2 : 0.03),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
                         ),
-                      const SizedBox(width: 10),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            p.name,
-                            style: TextStyle(
-                              color: textP,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (p.isAsset && p.imagePath != null)
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: Image.asset(
+                              p.imagePath!,
+                              height: 36,
+                              width: 52,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) => const Icon(
+                                Icons.account_balance_rounded,
+                                color: Color(0xFF3B82F6),
+                                size: 26,
+                              ),
+                            ),
+                          )
+                        else
+                          Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              color: (p.iconColor ?? const Color(0xFF3B82F6)).withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              p.icon ?? Icons.account_balance_rounded,
+                              color: p.iconColor ?? const Color(0xFF3B82F6),
+                              size: 20,
                             ),
                           ),
-                          Text(
-                            p.desc,
-                            style: TextStyle(
-                              color: textS,
-                              fontSize: 10.5,
+                        const SizedBox(width: 10),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              p.name,
+                              style: TextStyle(
+                                color: textP,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                );
-              },
+                            Text(
+                              p.desc,
+                              style: TextStyle(
+                                color: textS,
+                                fontSize: 10.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
           ),
         ],
@@ -1826,4 +1911,846 @@ class _PartnerBadge {
     this.iconColor,
     this.isAsset = false,
   });
+}
+
+
+// ═════════════════════════════════════════════════════════════════════════════
+// ── HOME YOUTUBE VIDEO SLIDER (AUTO-SLIDING & MANUAL SWIPE CAROUSEL) ─────────
+// ═════════════════════════════════════════════════════════════════════════════
+
+class _HomeVideoSliderSection extends StatelessWidget {
+  final HomeController controller;
+  final bool dark;
+
+  const _HomeVideoSliderSection({
+    required this.controller,
+    required this.dark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      if (controller.isVideosLoading.value && controller.homeVideos.isEmpty) {
+        return Container(
+          height: 220,
+          margin: const EdgeInsets.symmetric(horizontal: 20),
+          decoration: BoxDecoration(
+            color: dark ? const Color(0xFF0D1527) : const Color(0xFFE2E8F0),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: const Center(
+            child: CircularProgressIndicator(
+              color: Color(0xFFEF4444),
+              strokeWidth: 2.5,
+            ),
+          ),
+        );
+      }
+
+      final videos = controller.homeVideos;
+      if (videos.isEmpty) {
+        return const SizedBox.shrink();
+      }
+
+      final currentIndex = controller.currentVideoIndex.value;
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Section Header ──
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEF4444).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: const Color(0xFFEF4444).withOpacity(0.35),
+                      width: 1,
+                    ),
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.play_arrow_rounded,
+                      color: Color(0xFFEF4444),
+                      size: 20,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Property Video Tours',
+                        style: TextStyle(
+                          color: dark ? const Color(0xFFF1F5F9) : const Color(0xFF0F172A),
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Watch 4K project showcases & walkthroughs',
+                        style: TextStyle(
+                          color: dark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Counter pill
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: dark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: dark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+                    ),
+                  ),
+                  child: Text(
+                    '${currentIndex + 1} / ${videos.length}',
+                    style: TextStyle(
+                      color: dark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // ── Auto-sliding & Manual Swipe PageView ──
+          NotificationListener<ScrollNotification>(
+            onNotification: (notification) {
+              if (notification is ScrollStartNotification) {
+                controller.pauseAutoSlide();
+              } else if (notification is ScrollEndNotification) {
+                controller.resumeAutoSlide();
+              }
+              return false;
+            },
+            child: SizedBox(
+              height: 220,
+              child: PageView.builder(
+                controller: controller.videoPageController,
+                itemCount: videos.length,
+                onPageChanged: controller.onVideoPageChanged,
+                physics: const BouncingScrollPhysics(),
+                itemBuilder: (context, index) {
+                  final video = videos[index];
+                  return _HomeVideoCard(
+                    video: video,
+                    dark: dark,
+                    onPlaybackStateChange: (isPlaying) {
+                      controller.setVideoPlaying(isPlaying);
+                    },
+                  );
+                },
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // ── Bottom Navigation Row: Dots + Manual Controls ──
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                // Animated indicator dots
+                Row(
+                  children: List.generate(videos.length, (idx) {
+                    final isActive = idx == currentIndex;
+                    return GestureDetector(
+                      onTap: () {
+                        controller.videoPageController?.animateToPage(
+                          idx,
+                          duration: const Duration(milliseconds: 400),
+                          curve: Curves.easeInOut,
+                        );
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        margin: const EdgeInsets.only(right: 6),
+                        width: isActive ? 22 : 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: isActive
+                              ? const Color(0xFFEF4444)
+                              : (dark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+                const Spacer(),
+                // Manual prev / next arrows
+                GestureDetector(
+                  onTap: () => controller.prevVideo(),
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: dark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: dark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.chevron_left_rounded,
+                      color: dark ? Colors.white70 : const Color(0xFF334155),
+                      size: 18,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () => controller.nextVideo(),
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: dark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: dark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.chevron_right_rounded,
+                      color: dark ? Colors.white70 : const Color(0xFF334155),
+                      size: 18,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    });
+  }
+}
+
+// ── Individual Video Slide Card ───────────────────────────────────────────────
+class _HomeVideoCard extends StatefulWidget {
+  final HomeVideoModel video;
+  final bool dark;
+  final ValueChanged<bool> onPlaybackStateChange;
+
+  const _HomeVideoCard({
+    required this.video,
+    required this.dark,
+    required this.onPlaybackStateChange,
+  });
+
+  @override
+  State<_HomeVideoCard> createState() => _HomeVideoCardState();
+}
+
+class _HomeVideoCardState extends State<_HomeVideoCard> {
+  YoutubePlayerController? _controller;
+  bool _isPlaying = false;
+  bool _isReady = false;
+  bool _isFullScreenOpen = false;
+  int _lastExitTime = 0;
+
+  @override
+  void dispose() {
+    _controller?.close();
+    super.dispose();
+  }
+
+  void _startInlinePlayback() async {
+    widget.onPlaybackStateChange(true);
+    setState(() {
+      _isPlaying = true;
+    });
+
+    if (_controller == null) {
+      _controller = YoutubePlayerController(
+        params: const YoutubePlayerParams(
+          showControls: true,
+          showFullscreenButton: true,
+          mute: false,
+          showVideoAnnotations: false,
+          enableCaption: false,
+          playsInline: true,
+          strictRelatedVideos: true,
+        ),
+      );
+
+      _controller!.setFullScreenListener((isFullscreen) {
+        final now = DateTime.now().millisecondsSinceEpoch;
+        if (isFullscreen) {
+          if (!_isFullScreenOpen && (now - _lastExitTime >= 2500) && mounted) {
+            _openFullScreenMode();
+          } else {
+            _controller?.exitFullScreen();
+          }
+        }
+      });
+
+      try {
+        await _controller!.initWithParams(params: _controller!.params);
+        final cleanId = widget.video.youtubeVideoId.trim();
+        await _controller!.loadVideoById(videoId: cleanId);
+        await _controller!.playVideo();
+        if (mounted) {
+          setState(() => _isReady = true);
+        }
+      } catch (e) {
+        debugPrint('Error starting home YouTube video inline playback: $e');
+      }
+    } else {
+      await _controller!.playVideo();
+    }
+  }
+
+  Future<void> _openFullScreenMode() async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (_isFullScreenOpen || (now - _lastExitTime < 2500) || !mounted) return;
+    _isFullScreenOpen = true;
+    widget.onPlaybackStateChange(true);
+
+    double currentPos = 0.0;
+    try {
+      if (_isPlaying && _controller != null) {
+        currentPos = await _controller!.currentTime;
+        await _controller!.pauseVideo();
+      }
+    } catch (_) {}
+
+    if (!mounted) {
+      _isFullScreenOpen = false;
+      return;
+    }
+
+    final returnPos = await Navigator.of(context).push<double>(
+      MaterialPageRoute(
+        builder: (context) => _HomeVideoFullScreenPage(
+          videoId: widget.video.youtubeVideoId.trim(),
+          title: widget.video.title,
+          startSeconds: currentPos,
+        ),
+      ),
+    );
+
+    _lastExitTime = DateTime.now().millisecondsSinceEpoch;
+    _isFullScreenOpen = false;
+
+    if (mounted) {
+      _controller?.exitFullScreen();
+      setState(() {
+        _isPlaying = true;
+      });
+      if (returnPos != null && returnPos > 0 && _controller != null) {
+        try {
+          await _controller!.seekTo(seconds: returnPos);
+          await _controller!.playVideo();
+        } catch (_) {}
+      }
+    }
+  }
+
+  Future<void> _openExternalYouTube() async {
+    final cleanId = widget.video.youtubeVideoId.trim();
+    final uri = Uri.parse('https://www.youtube.com/watch?v=$cleanId');
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        await launchUrl(uri);
+      }
+    } catch (e) {
+      debugPrint('Could not launch YouTube: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0B111E),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: widget.dark ? const Color(0xFF1E2E4A) : const Color(0xFFE2E8F0),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(widget.dark ? 0.45 : 0.12),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Player or Thumbnail Cover
+          if (_isPlaying && _controller != null)
+            Stack(
+              fit: StackFit.expand,
+              children: [
+                WebViewWidget(controller: _controller!.webViewController),
+                if (!_isReady)
+                  Container(
+                    color: Colors.black,
+                    child: const Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFEF4444)),
+                        strokeWidth: 2.5,
+                      ),
+                    ),
+                  ),
+              ],
+            )
+          else
+            _buildThumbnailCover(),
+
+          // Overlays when not playing
+          if (!_isPlaying) ...[
+            // Top row: Spotlight badge & Fullscreen button
+            PositionBar(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFEF4444), Color(0xFFB91C1C)],
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFEF4444).withOpacity(0.4),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.ondemand_video_rounded, color: Colors.white, size: 12),
+                        SizedBox(width: 4),
+                        Text(
+                          'DRX TOUR',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      GestureDetector(
+                        onTap: _openExternalYouTube,
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.6),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.white24),
+                          ),
+                          child: const Icon(
+                            Icons.open_in_new_rounded,
+                            color: Colors.white,
+                            size: 14,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      GestureDetector(
+                        onTap: _openFullScreenMode,
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.6),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.white24),
+                          ),
+                          child: const Icon(
+                            Icons.fullscreen_rounded,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // Large Center Play Button
+            Center(
+              child: GestureDetector(
+                onTap: _startInlinePlayback,
+                child: Container(
+                  width: 58,
+                  height: 58,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFEF4444), Color(0xFFDC2626)],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFEF4444).withOpacity(0.55),
+                        blurRadius: 20,
+                        spreadRadius: 2,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.play_arrow_rounded,
+                      color: Colors.white,
+                      size: 36,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            // Bottom Title & Subtitle Card
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(14, 20, 14, 12),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.85),
+                      Colors.black.withOpacity(0.96),
+                    ],
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.video.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.2,
+                        shadows: [
+                          Shadow(blurRadius: 6, color: Colors.black),
+                        ],
+                      ),
+                    ),
+                    if (widget.video.subtitle.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        widget.video.subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.75),
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildThumbnailCover() {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Image.network(
+          widget.video.effectiveThumbnail,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => Container(
+            color: const Color(0xFF0F172A),
+            child: const Center(
+              child: Icon(Icons.video_library_rounded, color: Colors.white38, size: 42),
+            ),
+          ),
+        ),
+        // Dark translucent scrim
+        Container(
+          color: Colors.black.withOpacity(0.35),
+        ),
+      ],
+    );
+  }
+}
+
+class PositionBar extends StatelessWidget {
+  final Widget child;
+  const PositionBar({required this.child, super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: 12,
+      left: 12,
+      right: 12,
+      child: child,
+    );
+  }
+}
+
+// ── Full-Screen Landscape Player Page for Home Videos ─────────────────────────
+class _HomeVideoFullScreenPage extends StatefulWidget {
+  final String videoId;
+  final String title;
+  final double startSeconds;
+
+  const _HomeVideoFullScreenPage({
+    required this.videoId,
+    required this.title,
+    this.startSeconds = 0.0,
+  });
+
+  @override
+  State<_HomeVideoFullScreenPage> createState() => _HomeVideoFullScreenPageState();
+}
+
+class _HomeVideoFullScreenPageState extends State<_HomeVideoFullScreenPage> {
+  late final YoutubePlayerController _fsController;
+  bool _isExiting = false;
+  bool _isFsReady = false;
+
+  @override
+  void initState() {
+    super.initState();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
+    _fsController = YoutubePlayerController(
+      params: const YoutubePlayerParams(
+        showControls: true,
+        showFullscreenButton: true,
+        mute: false,
+        showVideoAnnotations: false,
+        enableCaption: false,
+        playsInline: true,
+        strictRelatedVideos: true,
+      ),
+    );
+
+    _fsController.setFullScreenListener((isFullscreen) {
+      if (!isFullscreen && !_isExiting && mounted) {
+        _exitFullscreen();
+      }
+    });
+
+    _initPlayer();
+  }
+
+  Future<void> _initPlayer() async {
+    try {
+      await _fsController.initWithParams(params: _fsController.params);
+      final cleanId = widget.videoId.trim();
+      if (widget.startSeconds > 0) {
+        await _fsController.loadVideoById(
+          videoId: cleanId,
+          startSeconds: widget.startSeconds,
+        );
+      } else {
+        await _fsController.loadVideoById(videoId: cleanId);
+      }
+      await _fsController.playVideo();
+      if (mounted) {
+        setState(() => _isFsReady = true);
+      }
+    } catch (e) {
+      debugPrint('Error initializing fullscreen YouTube player: $e');
+    }
+  }
+
+  Future<void> _exitFullscreen() async {
+    if (_isExiting) return;
+    _isExiting = true;
+
+    double pos = widget.startSeconds;
+    try {
+      pos = await _fsController.currentTime;
+      await _fsController.pauseVideo();
+    } catch (_) {}
+
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    await Future.delayed(const Duration(milliseconds: 120));
+
+    if (mounted) {
+      Navigator.of(context).pop(pos);
+    }
+  }
+
+  @override
+  void dispose() {
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    _fsController.close();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && !_isExiting) {
+          _exitFullscreen();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            Center(
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: WebViewWidget(
+                  controller: _fsController.webViewController,
+                ),
+              ),
+            ),
+            if (!_isFsReady)
+              Container(
+                color: Colors.black,
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFEF4444)),
+                  ),
+                ),
+              ),
+            SafeArea(
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black87,
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.black54,
+                          padding: const EdgeInsets.all(8),
+                        ),
+                        tooltip: 'Exit Fullscreen',
+                        onPressed: _exitFullscreen,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          widget.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            shadows: [
+                              Shadow(blurRadius: 6, color: Colors.black),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      GestureDetector(
+                        onTap: _exitFullscreen,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.white24),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.fullscreen_exit_rounded, color: Colors.white, size: 18),
+                              SizedBox(width: 4),
+                              Text(
+                                'Exit Fullscreen',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

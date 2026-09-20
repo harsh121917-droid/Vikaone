@@ -78,7 +78,7 @@ class LockService extends GetxService {
   Future<bool> authenticateWithBiometric() async {
     try {
       return await _auth.authenticate(
-        localizedReason: 'Authenticate to open Bharat SQFT',
+        localizedReason: 'Authenticate to open Vika DRX',
         options: const AuthenticationOptions(
           biometricOnly: true,
           stickyAuth: true,

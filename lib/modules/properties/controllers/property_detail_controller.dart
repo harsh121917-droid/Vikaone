@@ -8,6 +8,8 @@ import '../../../data/repositories/property_repository.dart';
 import '../../../data/repositories/investment_repository.dart';
 
 class PropertyDetailController extends GetxController {
+  final String? propertyId;
+  PropertyDetailController({this.propertyId});
   final PropertyRepository   _repo    = Get.find();
   final InvestmentRepository _invRepo = Get.find();
   final AuthService          _auth    = Get.find();
@@ -16,6 +18,9 @@ class PropertyDetailController extends GetxController {
   final property      = Rx<PropertyModel?>(null);
   final errorMsg       = ''.obs;
   final currentImg     = 0.obs;
+
+  final suggestedProperties   = <PropertyModel>[].obs;
+  final isSuggestionsLoading = false.obs;
 
   final isPurchasing   = false.obs;
   final purchaseStatus = ''.obs; // '', 'creating_order', 'awaiting_payment', 'verifying', 'success', 'failed'
@@ -35,7 +40,7 @@ class PropertyDetailController extends GetxController {
     _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _onPaymentError);
     _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _onExternalWallet);
 
-    final id = Get.parameters['id'] ?? Get.arguments as String?;
+    final id = propertyId ?? Get.parameters['id'] ?? (Get.arguments is String ? Get.arguments as String : null);
     if (id != null) loadProperty(id);
   }
 
@@ -50,6 +55,13 @@ class PropertyDetailController extends GetxController {
       isLoading.value = true;
       errorMsg.value  = '';
       property.value  = await _repo.getProperty(id);
+      if (property.value != null) {
+        loadSuggestions(
+          id,
+          category: property.value?.propertyType,
+          city: property.value?.location.city,
+        );
+      }
     } on DioException catch (e) {
       errorMsg.value = e.response?.data?['message'] ?? 'Property not found';
     } catch (e) {
@@ -271,4 +283,33 @@ class PropertyDetailController extends GetxController {
   void _onExternalWallet(ExternalWalletResponse response) {
     Get.snackbar('External Wallet', response.walletName ?? '');
   }
+
+  Future<void> loadSuggestions(String currentId, {String? category, String? city}) async {
+    try {
+      isSuggestionsLoading.value = true;
+      final List<PropertyModel> results = [];
+
+      // 1. Fetch properties matching category if available
+      if (category != null && category.isNotEmpty) {
+        final sameCat = await _repo.getProperties(type: category, limit: 12);
+        results.addAll(sameCat.where((p) => p.id != currentId));
+      }
+
+      // 2. Fetch general properties to guarantee rich continuous suggestions
+      if (results.length < 3) {
+        final all = await _repo.getProperties(limit: 20);
+        for (final p in all) {
+          if (p.id != currentId && !results.any((r) => r.id == p.id)) {
+            results.add(p);
+          }
+        }
+      }
+
+      suggestedProperties.assignAll(results);
+    } catch (_) {
+    } finally {
+      isSuggestionsLoading.value = false;
+    }
+  }
+
 }

@@ -42,6 +42,8 @@ class TransactionModel {
   bool get isFailed => status == 'failed';
   bool get isBrick => type == 'brick_purchase';
   bool get isSaving => type == 'daily_saving' || type == 'monthly_saving';
+  bool get isWallet => category == 'Wallet' || type == 'add' || type == 'drx_deposit' || type == 'drx_withdraw' || type == 'withdraw' || type == 'deposit' || type == 'brick_buy' || type == 'brick_yield' || type == 'manual_credit' || type == 'manual_debit';
+  bool get isCredit => subtitle.startsWith('+') || type == 'add' || type == 'drx_deposit' || type == 'deposit' || type == 'brick_yield' || type == 'manual_credit';
 
   String get formattedAmount {
     final n = amount;
@@ -81,7 +83,7 @@ class TransactionModel {
     category: j['category'] ?? 'Investment',
     title: j['title'] ?? '',
     subtitle: j['subtitle'] ?? '',
-    amount: (j['amount'] ?? 0) as int,
+    amount: ((j['amount'] ?? 0) as num).toInt(),
     status: j['status'] ?? 'pending',
     razorpayPaymentId: j['razorpayPaymentId'],
     razorpayOrderId: j['razorpayOrderId'],
@@ -89,8 +91,8 @@ class TransactionModel {
     city: j['city'],
     propertyId: j['propertyId']?.toString(),
     savingId: j['savingId']?.toString(),
-    bricks: j['bricks'] as int?,
-    pricePerBrick: j['pricePerBrick'] as int?,
+    bricks: (j['bricks'] != null ? (j['bricks'] as num).toInt() : null),
+    pricePerBrick: (j['pricePerBrick'] != null ? (j['pricePerBrick'] as num).toInt() : null),
     note: j['note'],
     createdAt: DateTime.tryParse(j['createdAt'] ?? '') ?? DateTime.now(),
   );

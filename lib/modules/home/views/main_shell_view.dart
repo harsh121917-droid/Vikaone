@@ -396,7 +396,7 @@ class _AppDrawer extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Text(
-                                'Bharat SQFT',
+                                'Vika DRX',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 18,

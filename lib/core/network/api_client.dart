@@ -13,8 +13,8 @@ class ApiClient {
       receiveTimeout: const Duration(seconds: 15),
       headers: {
         'Content-Type': 'application/json',
-        'x-app-source': 'vikaone',
-        'x-platform': 'Vikaone Real Estate App',
+        'x-app-source': 'vikadrx',
+        'x-platform': 'Vika DRX App',
       },
     ),
   )..interceptors.add(_AuthInterceptor());
@@ -27,8 +27,8 @@ class _AuthInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     final token = _box.read<String>(StorageKeys.token);
-    options.headers['x-app-source'] = 'vikaone';
-    options.headers['x-platform'] = 'Vikaone Real Estate App';
+    options.headers['x-app-source'] = 'vikadrx';
+    options.headers['x-platform'] = 'Vika DRX App';
     if (token != null && token.isNotEmpty) {
       options.headers['Authorization'] = 'Bearer $token';
     }

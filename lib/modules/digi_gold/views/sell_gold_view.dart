@@ -737,56 +737,56 @@ class _SellGoldViewState extends State<SellGoldView> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    GestureDetector(
-                      onTap: WalletController.to.isSelling.value
-                          ? null
-                          : () async {
-                              HapticFeedback.mediumImpact();
-                              final ok = await WalletController.to.sellGold(
-                                _gramsDisp,
-                              );
-                              if (ok) Get.back();
-                            },
-                      child: Container(
-                        height: 54,
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF3B82F6), Color(0xFF60A5FA)],
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF3B82F6).withOpacity(0.45),
-                              blurRadius: 14,
-                              offset: const Offset(0, 6),
-                            ),
-                          ],
-                        ),
-                        child: Center(
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.lock_outline_rounded,
-                                color: Colors.white,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                WalletController.to.isSelling.value
-                                    ? 'Processing...'
-                                    : 'Sell to Wallet',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
+                    // GestureDetector(
+                    //   onTap: WalletController.to.isSelling.value
+                    //       ? null
+                    //       : () async {
+                    //           HapticFeedback.mediumImpact();
+                    //           final ok = await WalletController.to.sellGold(
+                    //             _gramsDisp,
+                    //           );
+                    //           if (ok) Get.back();
+                    //         },
+                    //   child: Container(
+                    //     height: 54,
+                    //     decoration: BoxDecoration(
+                    //       gradient: const LinearGradient(
+                    //         colors: [Color(0xFF3B82F6), Color(0xFF60A5FA)],
+                    //       ),
+                    //       borderRadius: BorderRadius.circular(16),
+                    //       boxShadow: [
+                    //         BoxShadow(
+                    //           color: const Color(0xFF3B82F6).withOpacity(0.45),
+                    //           blurRadius: 14,
+                    //           offset: const Offset(0, 6),
+                    //         ),
+                    //       ],
+                    //     ),
+                    //     child: Center(
+                    //       child: Row(
+                    //         mainAxisSize: MainAxisSize.min,
+                    //         children: [
+                    //           const Icon(
+                    //             Icons.lock_outline_rounded,
+                    //             color: Colors.white,
+                    //             size: 18,
+                    //           ),
+                    //           const SizedBox(width: 8),
+                    //           Text(
+                    //             WalletController.to.isSelling.value
+                    //                 ? 'Processing...'
+                    //                 : 'Sell to Wallet',
+                    //             style: const TextStyle(
+                    //               color: Colors.white,
+                    //               fontSize: 15,
+                    //               fontWeight: FontWeight.w900,
+                    //             ),
+                    //           ),
+                    //         ],
+                    //       ),
+                    //     ),
+                    //   ),
+                    // ),
                     const SizedBox(height: 10),
                     const Row(
                       mainAxisAlignment: MainAxisAlignment.center,

@@ -1,3 +1,7 @@
+import 'package:get/get.dart';
+import '../../properties/controllers/properties_controller.dart';
+import '../controllers/main_shell_controller.dart';
+import '../../../routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:real_estate/core/theme/app_colors.dart';
 
@@ -103,7 +107,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  int _selectedCategory = 0;
+  int _selectedCategory = -1;
   int _selectedTab = 0;
   final _searchController = TextEditingController();
 
@@ -139,13 +143,36 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 28),
             _SectionHeader(
               title: 'Browse by Category',
-              onSeeAll: () {},
+              onSeeAll: () {
+                final propCtrl = Get.isRegistered<PropertiesController>()
+                    ? Get.find<PropertiesController>()
+                    : Get.put(PropertiesController());
+                propCtrl.clearFilters();
+                setState(() => _selectedCategory = -1);
+                if (Get.isRegistered<MainShellController>()) {
+                  Get.find<MainShellController>().changeTab(1);
+                } else {
+                  Get.toNamed(AppRoutes.properties);
+                }
+              },
             ),
             const SizedBox(height: 14),
             _CategoryRow(
               categories: _categories,
               selected: _selectedCategory,
-              onTap: (i) => setState(() => _selectedCategory = i),
+              onTap: (i) {
+                setState(() => _selectedCategory = i);
+                final catName = _categories[i].label;
+                final propCtrl = Get.isRegistered<PropertiesController>()
+                    ? Get.find<PropertiesController>()
+                    : Get.put(PropertiesController());
+                propCtrl.filterByCategory(catName);
+                if (Get.isRegistered<MainShellController>()) {
+                  Get.find<MainShellController>().changeTab(1);
+                } else {
+                  Get.toNamed(AppRoutes.properties);
+                }
+              },
             ),
             const SizedBox(height: 28),
             _SectionHeader(

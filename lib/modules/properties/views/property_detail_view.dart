@@ -1,6 +1,8 @@
+import 'package:real_estate/modules/wallet/controllers/wallet_controller.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:async';
-import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import 'package:flutter/services.dart';
 import 'dart:math';
 import 'dart:ui';
@@ -125,11 +127,23 @@ Future<void> _launchDocumentUrl(String? url, String title) async {
   }
 }
 
-class PropertyDetailView extends GetView<PropertyDetailController> {
-  const PropertyDetailView({super.key});
+class PropertyDetailView extends StatelessWidget {
+  final String? propertyId;
+  const PropertyDetailView({super.key, this.propertyId});
 
   @override
   Widget build(BuildContext context) {
+    final effectiveId = propertyId ??
+        Get.parameters['id'] ??
+        (Get.arguments is String ? Get.arguments as String : null);
+
+    final controller = Get.isRegistered<PropertyDetailController>(tag: effectiveId)
+        ? Get.find<PropertyDetailController>(tag: effectiveId)
+        : Get.put(
+            PropertyDetailController(propertyId: effectiveId),
+            tag: effectiveId,
+          );
+
     return Obx(() {
       final dark = ThemeController.to.isDark.value;
       final bg = dark ? DarkColors.background : AppColors.background;
@@ -147,7 +161,11 @@ class PropertyDetailView extends GetView<PropertyDetailController> {
             return _ErrorState(msg: controller.errorMsg.value, dark: dark);
           }
           if (p == null) return const SizedBox.shrink();
-          return _PropertyContent(property: p, dark: dark);
+          return _PropertyContent(
+            property: p,
+            dark: dark,
+            controller: controller,
+          );
         }),
         bottomNavigationBar: (p != null && p.investmentEnabled)
             ? _PropertyStickyBottomBar(
@@ -164,7 +182,12 @@ class PropertyDetailView extends GetView<PropertyDetailController> {
 class _PropertyContent extends StatefulWidget {
   final PropertyModel property;
   final bool dark;
-  const _PropertyContent({required this.property, required this.dark});
+  final PropertyDetailController controller;
+  const _PropertyContent({
+    required this.property,
+    required this.dark,
+    required this.controller,
+  });
 
   @override
   State<_PropertyContent> createState() => _PropertyContentState();
@@ -173,6 +196,17 @@ class _PropertyContent extends StatefulWidget {
 class _PropertyContentState extends State<_PropertyContent> {
   int _selectedTab = 0; // 0: Investment, 1: Legal, 2: Returns, 3: Security, 4: Testimonials
   late double _investmentSliderAmount;
+  String? _expandedAccordion; // 'about', 'protected', 'legal', 'calculator', 'security'
+
+  void _toggleAccordion(String section) {
+    setState(() {
+      if (_expandedAccordion == section) {
+        _expandedAccordion = null;
+      } else {
+        _expandedAccordion = section;
+      }
+    });
+  }
 
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _investmentKey = GlobalKey();
@@ -678,8 +712,146 @@ class _PropertyContentState extends State<_PropertyContent> {
                     borderC,
                   ),
                 ),
+                const SizedBox(height: 36),
+
+                // 6. Similar & Recommended Properties Section
+                _buildSuggestedPropertiesSection(
+                  property,
+                  dark,
+                  textP,
+                  textS,
+                  cardBg,
+                  borderC,
+                  widget.controller,
+                ),
+
+                const SizedBox(height: 110),
               ],
             ),
+          ),
+        ),
+      ],
+    );
+  }
+
+
+  Widget _buildSuggestedPropertiesSection(
+    PropertyModel property,
+    bool dark,
+    Color textP,
+    Color textS,
+    Color cardBg,
+    Color borderC,
+    PropertyDetailController controller,
+  ) {
+    return Obx(() {
+      if (controller.isSuggestionsLoading.value) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSuggestedHeader(textP, textS),
+              const SizedBox(height: 16),
+              const SizedBox(
+                height: 180,
+                child: Center(
+                  child: CircularProgressIndicator(
+                    color: AppColors.accent,
+                    strokeWidth: 2,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+
+      final suggestions = controller.suggestedProperties
+          .where((p) => p.id != property.id)
+          .toList();
+
+      if (suggestions.isEmpty) {
+        return const SizedBox.shrink();
+      }
+
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSuggestedHeader(textP, textS),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 275,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                itemCount: suggestions.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 14),
+                itemBuilder: (context, i) {
+                  final p = suggestions[i];
+                  return _SuggestedPropertyCard(
+                    property: p,
+                    dark: dark,
+                    textP: textP,
+                    textS: textS,
+                    cardBg: cardBg,
+                    borderC: borderC,
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      Get.to(
+                        () => PropertyDetailView(propertyId: p.id),
+                        preventDuplicates: false,
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _buildSuggestedHeader(Color textP, Color textS) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: AppColors.accent.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.auto_awesome_rounded,
+                color: AppColors.accent,
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'Similar & Recommended Properties',
+              style: TextStyle(
+                color: textP,
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.3,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Handpicked properties you might also be interested in',
+          style: TextStyle(
+            color: textS,
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ],
@@ -1010,6 +1182,7 @@ Widget _buildInvestmentTab(
         if (property.youtubeVideoId != null) ...[
           _PropertyVideoSection(
             videoId: property.youtubeVideoId!,
+            fallbackImageUrl: property.coverImage,
             dark: dark,
           ),
           const SizedBox(height: 20),
@@ -1019,7 +1192,7 @@ Widget _buildInvestmentTab(
         _FinancialHighlightsGrid(property: property, dark: dark),
         const SizedBox(height: 20),
 
-        // About Property
+        // About Property (Accordion)
         if (property.description != null && property.description!.isNotEmpty) ...[
           _ThemedCard(
             dark: dark,
@@ -1028,21 +1201,57 @@ Widget _buildInvestmentTab(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'About this Property',
-                    style: TextStyle(
-                      color: textP,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
+                  InkWell(
+                    onTap: () => _toggleAccordion('about'),
+                    borderRadius: BorderRadius.circular(10),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'About This Property',
+                          style: TextStyle(
+                            color: textP,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        AnimatedRotation(
+                          turns: _expandedAccordion == 'about' ? 0.5 : 0.0,
+                          duration: const Duration(milliseconds: 240),
+                          curve: Curves.easeInOut,
+                          child: Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            color: textP,
+                            size: 24,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  Text(
-                    property.description!,
-                    style: TextStyle(
-                      color: textS,
-                      fontSize: 13.5,
-                      height: 1.65,
+                  AnimatedCrossFade(
+                    duration: const Duration(milliseconds: 240),
+                    firstCurve: Curves.easeInOut,
+                    secondCurve: Curves.easeInOut,
+                    sizeCurve: Curves.easeInOut,
+                    crossFadeState: _expandedAccordion == 'about'
+                        ? CrossFadeState.showSecond
+                        : CrossFadeState.showFirst,
+                    firstChild: const SizedBox.shrink(),
+                    secondChild: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 12),
+                        Divider(color: borderC.withOpacity(0.6), height: 1),
+                        const SizedBox(height: 12),
+                        Text(
+                          property.description!,
+                          style: TextStyle(
+                            color: textS,
+                            fontSize: 13.5,
+                            height: 1.65,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -1143,11 +1352,16 @@ Widget _buildInvestmentTab(
         _AdvisorCard(dark: dark),
         const SizedBox(height: 20),
 
-        // Institutional Custody Card
-        _InstitutionalTrustCard(dark: dark, property: property),
+        // Institutional Custody Card (Accordion)
+        _InstitutionalTrustCard(
+          dark: dark,
+          property: property,
+          isExpanded: _expandedAccordion == 'protected',
+          onToggle: () => _toggleAccordion('protected'),
+        ),
         const SizedBox(height: 20),
 
-        // Property Legal & Compliance Documents Section
+        // Property Legal & Compliance Documents Section (Accordion)
         _PropertyDocumentsSection(
           property: property,
           dark: dark,
@@ -1155,6 +1369,8 @@ Widget _buildInvestmentTab(
           textS: textS,
           cardBg: cardBg,
           borderC: borderC,
+          isExpanded: _expandedAccordion == 'legal',
+          onToggle: () => _toggleAccordion('legal'),
         ),
       ],
     );
@@ -1209,8 +1425,13 @@ Widget _buildInvestmentTab(
         _ProjectedReturnsBarChart(dark: dark),
         const SizedBox(height: 20),
 
-        // Return Simulator (Preserved!)
-        _InvestmentSimulator(property: property, dark: dark),
+        // Return Simulator (Accordion)
+        _InvestmentSimulator(
+          property: property,
+          dark: dark,
+          isExpanded: _expandedAccordion == 'calculator',
+          onToggle: () => _toggleAccordion('calculator'),
+        ),
       ],
     );
   }
@@ -1226,23 +1447,98 @@ Widget _buildInvestmentTab(
     Color cardBg,
     Color borderC,
   ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Institutional Security & Protection',
-          style: TextStyle(
-            color: textP,
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.3,
+    final isExpanded = _expandedAccordion == 'security';
+    return Container(
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: borderC),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(dark ? 0.3 : 0.04),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
           ),
-        ),
-        // const SizedBox(height: 12),
-        // _InstitutionalTrustCard(dark: dark, property: property),
-        const SizedBox(height: 20),
-        _SecurityFaqAccordion(dark: dark),
-      ],
+        ],
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () => _toggleAccordion('security'),
+            borderRadius: BorderRadius.circular(10),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(9),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withOpacity(dark ? 0.25 : 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.security_rounded,
+                    color: Color(0xFF10B981),
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Institutional Security & Protection',
+                        style: TextStyle(
+                          color: textP,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Ownership protection, escrow trust & FAQ safeguards',
+                        style: TextStyle(color: textS, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                AnimatedRotation(
+                  turns: isExpanded ? 0.5 : 0.0,
+                  duration: const Duration(milliseconds: 240),
+                  curve: Curves.easeInOut,
+                  child: Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: textP,
+                    size: 24,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          AnimatedCrossFade(
+            duration: const Duration(milliseconds: 240),
+            firstCurve: Curves.easeInOut,
+            secondCurve: Curves.easeInOut,
+            sizeCurve: Curves.easeInOut,
+            crossFadeState: isExpanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            firstChild: const SizedBox.shrink(),
+            secondChild: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 16),
+                Divider(color: borderC.withOpacity(0.6), height: 1),
+                const SizedBox(height: 16),
+                _SecurityFaqAccordion(dark: dark),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1380,10 +1676,10 @@ class _CashbackBenefitsCarouselState extends State<_CashbackBenefitsCarousel> {
       'bgLight': Color(0xFFF0FDFA),
     },
     {
-      'title': '₹250 Instant Wallet Bonus',
-      'subtitle': 'Welcome bonus auto-applied toward your brick purchase',
-      'badge': 'BONUS',
-      'icon': Icons.account_balance_wallet_rounded,
+      'title': 'Zero Brokerage & Direct Custody',
+      'subtitle': 'Direct fractional ownership with 0 brokerage or hidden transaction fees',
+      'badge': '0% FEE',
+      'icon': Icons.verified_rounded,
       'color': Color(0xFFF59E0B),
       'bgDark': Color(0xFF78350F),
       'bgLight': Color(0xFFFFFBEB),
@@ -4426,9 +4722,16 @@ class _MetricCard extends StatelessWidget {
 
 // ─── Investment Returns Simulator ─────────────────────────────────────────────
 class _InvestmentSimulator extends StatefulWidget {
-  const _InvestmentSimulator({required this.property, required this.dark});
+  const _InvestmentSimulator({
+    required this.property,
+    required this.dark,
+    this.isExpanded = false,
+    this.onToggle,
+  });
   final PropertyModel property;
   final bool dark;
+  final bool isExpanded;
+  final VoidCallback? onToggle;
 
   @override
   State<_InvestmentSimulator> createState() => _InvestmentSimulatorState();
@@ -4484,41 +4787,72 @@ class _InvestmentSimulatorState extends State<_InvestmentSimulator> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.accent.withOpacity(dark ? 0.2 : 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.calculate_rounded,
-                  color: AppColors.accent,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Investment Returns Calculator',
-                    style: TextStyle(
-                      color: textP,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                    ),
+          InkWell(
+            onTap: widget.onToggle,
+            borderRadius: BorderRadius.circular(10),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.accent.withOpacity(dark ? 0.2 : 0.12),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  Text(
-                    'Simulate potential rental income & growth',
-                    style: TextStyle(color: textS, fontSize: 12),
+                  child: const Icon(
+                    Icons.calculate_rounded,
+                    color: AppColors.accent,
+                    size: 20,
                   ),
-                ],
-              ),
-            ],
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Investment Return Calculator',
+                        style: TextStyle(
+                          color: textP,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      Text(
+                        'Simulate potential rental income & growth',
+                        style: TextStyle(color: textS, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                AnimatedRotation(
+                  turns: widget.isExpanded ? 0.5 : 0.0,
+                  duration: const Duration(milliseconds: 240),
+                  curve: Curves.easeInOut,
+                  child: Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: textP,
+                    size: 24,
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 18),
+          AnimatedCrossFade(
+            duration: const Duration(milliseconds: 240),
+            firstCurve: Curves.easeInOut,
+            secondCurve: Curves.easeInOut,
+            sizeCurve: Curves.easeInOut,
+            crossFadeState: widget.isExpanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            firstChild: const SizedBox.shrink(),
+            secondChild: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 18),
+                Divider(color: borderColor.withOpacity(0.6), height: 1),
+                const SizedBox(height: 18),
 
           Text(
             'Select Number of Bricks',
@@ -4741,6 +5075,9 @@ class _InvestmentSimulatorState extends State<_InvestmentSimulator> {
               ),
             ),
           ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -4752,10 +5089,14 @@ class _InstitutionalTrustCard extends StatelessWidget {
   const _InstitutionalTrustCard({
     required this.dark,
     required this.property,
+    this.isExpanded = false,
+    this.onToggle,
   });
 
   final bool dark;
   final PropertyModel property;
+  final bool isExpanded;
+  final VoidCallback? onToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -4783,48 +5124,77 @@ class _InstitutionalTrustCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(7),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withOpacity(0.12),
-                  shape: BoxShape.circle,
+          InkWell(
+            onTap: onToggle,
+            borderRadius: BorderRadius.circular(10),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withOpacity(0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.verified_user_rounded,
+                    color: Color(0xFF10B981),
+                    size: 18,
+                  ),
                 ),
-                child: const Icon(
-                  Icons.verified_user_rounded,
-                  color: Color(0xFF10B981),
-                  size: 18,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'How is your investment protected',
-                      style: TextStyle(
-                        color: textP,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.2,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'How Is Your Investment Protected',
+                        style: TextStyle(
+                          color: textP,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.2,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Institutional safeguards & SEBI-regulated escrow',
-                      style: TextStyle(
-                        color: textS,
-                        fontSize: 11,
+                      const SizedBox(height: 2),
+                      Text(
+                        'Institutional safeguards & SEBI-regulated escrow',
+                        style: TextStyle(
+                          color: textS,
+                          fontSize: 11,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 8),
+                AnimatedRotation(
+                  turns: isExpanded ? 0.5 : 0.0,
+                  duration: const Duration(milliseconds: 240),
+                  curve: Curves.easeInOut,
+                  child: Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: textP,
+                    size: 24,
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
+          AnimatedCrossFade(
+            duration: const Duration(milliseconds: 240),
+            firstCurve: Curves.easeInOut,
+            secondCurve: Curves.easeInOut,
+            sizeCurve: Curves.easeInOut,
+            crossFadeState: isExpanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            firstChild: const SizedBox.shrink(),
+            secondChild: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 16),
+                Divider(color: borderColor.withOpacity(0.6), height: 1),
+                const SizedBox(height: 16),
 
           // Row 1: ICICI escrow account (Screenshot 1 & 2)
           _ProtectionInteractiveRow(
@@ -4868,6 +5238,9 @@ class _InstitutionalTrustCard extends StatelessWidget {
                 'Liquidity window allows investors to sell their fractional units or buy more at fair market value',
             dark: dark,
             onTap: () => _showBuySellAnytimeSheet(context, property, dark),
+          ),
+              ],
+            ),
           ),
         ],
       ),
@@ -6265,29 +6638,42 @@ class _PropertyStickyBottomBar extends StatelessWidget {
     final barBg = dark ? const Color(0xFF09101C) : Colors.white;
     final textS = dark ? DarkColors.textSecondary : AppColors.textSecondary;
 
-        return Column(
+        return Material(
+      elevation: 20,
+      color: barBg,
+      child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Wallet balance banner (Screenshot 4 & 5)
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
-          color: const Color(0xFF064E3B),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.account_balance_wallet_rounded, color: Color(0xFF10B981), size: 14),
-              const SizedBox(width: 6),
-              Text(
-                'Wallet balance: ₹250. Auto-applied on checkout',
-                style: const TextStyle(
-                  color: Color(0xFFA7F3D0),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
+        // Real DRX Wallet balance banner (only shown if user has active positive DRX balance)
+        Builder(
+          builder: (context) {
+            if (!Get.isRegistered<WalletController>()) return const SizedBox.shrink();
+            final wCtrl = WalletController.to;
+            return Obx(() {
+              final bal = wCtrl.wallet.value?.availableBalance ?? 0.0;
+              if (bal <= 0) return const SizedBox.shrink();
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+                color: const Color(0xFF064E3B),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.account_balance_wallet_rounded, color: Color(0xFF10B981), size: 14),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Vika DRX Wallet: ₹${bal.toStringAsFixed(0)}. Auto-applied on checkout',
+                      style: const TextStyle(
+                        color: Color(0xFFA7F3D0),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
+              );
+            });
+          },
         ),
         Container(
       padding: EdgeInsets.fromLTRB(
@@ -6579,16 +6965,21 @@ class _PropertyStickyBottomBar extends StatelessWidget {
       ),
     ),
   ],
-);
+));
   }
 }
 
 
-// ── Property Video Tour Section (In-App Direct Playback) ─────────────
+// ── Property Video Tour Section (In-Tree Player with True Fullscreen Architecture) ──
 class _PropertyVideoSection extends StatefulWidget {
   final String videoId;
+  final String? fallbackImageUrl;
   final bool dark;
-  const _PropertyVideoSection({required this.videoId, required this.dark});
+  const _PropertyVideoSection({
+    required this.videoId,
+    this.fallbackImageUrl,
+    required this.dark,
+  });
 
   @override
   State<_PropertyVideoSection> createState() => _PropertyVideoSectionState();
@@ -6596,6 +6987,10 @@ class _PropertyVideoSection extends StatefulWidget {
 
 class _PropertyVideoSectionState extends State<_PropertyVideoSection> {
   late final YoutubePlayerController _controller;
+  bool _isPlaying = false;
+  bool _isReady = false;
+  bool _isFullScreenOpen = false;
+  int _lastExitTime = 0;
 
   @override
   void initState() {
@@ -6611,13 +7006,229 @@ class _PropertyVideoSectionState extends State<_PropertyVideoSection> {
         strictRelatedVideos: true,
       ),
     );
-    _controller.cueVideoById(videoId: widget.videoId);
+
+    // Fullscreen trigger from YouTube iframe player controls
+    _controller.setFullScreenListener((isFullscreen) {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      if (isFullscreen) {
+        if (!_isFullScreenOpen && (now - _lastExitTime >= 2500) && mounted) {
+          _openFullScreenMode();
+        } else {
+          // Ignore spurious re-trigger during cooldown or while already open
+          _controller.exitFullScreen();
+        }
+      }
+    });
+
+    _initPlayer();
+  }
+
+  Future<void> _initPlayer() async {
+    try {
+      await _controller.initWithParams(params: _controller.params);
+      final cleanId = widget.videoId.trim();
+      await _controller.cueVideoById(videoId: cleanId);
+      if (mounted) {
+        setState(() => _isReady = true);
+      }
+    } catch (e) {
+      debugPrint('Error initializing YouTube player controller: $e');
+    }
   }
 
   @override
   void dispose() {
     _controller.close();
     super.dispose();
+  }
+
+  void _startPlayback() async {
+    setState(() {
+      _isPlaying = true;
+    });
+    final cleanId = widget.videoId.trim();
+    if (!_isReady) {
+      try {
+        await _controller.initWithParams(params: _controller.params);
+        _isReady = true;
+      } catch (e) {
+        debugPrint('Error during player playback init: $e');
+      }
+    }
+    await _controller.loadVideoById(videoId: cleanId);
+    await _controller.playVideo();
+  }
+
+  Future<void> _openFullScreenMode() async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (_isFullScreenOpen || (now - _lastExitTime < 2500) || !mounted) return;
+    _isFullScreenOpen = true;
+
+    double currentPos = 0.0;
+    try {
+      if (_isPlaying) {
+        currentPos = await _controller.currentTime;
+        await _controller.pauseVideo();
+      }
+    } catch (_) {}
+
+    if (!mounted) {
+      _isFullScreenOpen = false;
+      return;
+    }
+
+    final returnPos = await Navigator.of(context).push<double>(
+      MaterialPageRoute(
+        builder: (context) => _FullScreenVideoPage(
+          videoId: widget.videoId.trim(),
+          startSeconds: currentPos,
+        ),
+      ),
+    );
+
+    _lastExitTime = DateTime.now().millisecondsSinceEpoch;
+    _isFullScreenOpen = false;
+
+    if (mounted) {
+      // Reset full screen option on inline controller
+      _controller.exitFullScreen();
+
+      setState(() {
+        _isPlaying = true;
+      });
+
+      if (returnPos != null && returnPos > 0) {
+        try {
+          await _controller.seekTo(seconds: returnPos);
+          await _controller.playVideo();
+        } catch (_) {}
+      }
+    }
+  }
+
+  Future<void> _openExternalYouTube() async {
+    final cleanId = widget.videoId.trim();
+    final uri = Uri.parse('https://www.youtube.com/watch?v=$cleanId');
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        await launchUrl(uri);
+      }
+    } catch (e) {
+      debugPrint('Could not launch YouTube: $e');
+    }
+  }
+
+  Widget _buildPlaceholderCard() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: widget.dark
+              ? [const Color(0xFF0F172A), const Color(0xFF1E293B)]
+              : [const Color(0xFF1E293B), const Color(0xFF334155)],
+        ),
+      ),
+      child: const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.video_library_rounded, color: Color(0xFFEF4444), size: 42),
+            SizedBox(height: 8),
+            Text(
+              'Official Property Tour',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThumbnail() {
+    final ytThumbnail = 'https://img.youtube.com/vi/${widget.videoId}/hqdefault.jpg';
+    final fallbackUrl = widget.fallbackImageUrl;
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Image.network(
+          ytThumbnail,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            if (fallbackUrl != null && fallbackUrl.trim().isNotEmpty) {
+              return Image.network(
+                fallbackUrl.trim(),
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => _buildPlaceholderCard(),
+              );
+            }
+            return _buildPlaceholderCard();
+          },
+        ),
+        Container(
+          color: Colors.black.withOpacity(0.28),
+        ),
+        Center(
+          child: GestureDetector(
+            onTap: _startPlayback,
+            child: Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEF4444),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFEF4444).withOpacity(0.55),
+                    blurRadius: 18,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.play_arrow_rounded,
+                color: Colors.white,
+                size: 38,
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          bottom: 12,
+          left: 12,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.75),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(0.15)),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.play_circle_outline_rounded, color: Colors.white, size: 14),
+                SizedBox(width: 5),
+                Text(
+                  'Tap to play tour',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -6670,33 +7281,71 @@ class _PropertyVideoSectionState extends State<_PropertyVideoSection> {
                     ],
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEF4444).withOpacity(widget.dark ? 0.15 : 0.08),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: const Color(0xFFEF4444).withOpacity(0.3),
+                // Fullscreen Quick Action Button
+                GestureDetector(
+                  onTap: _openFullScreenMode,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEF4444).withOpacity(widget.dark ? 0.2 : 0.1),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: const Color(0xFFEF4444).withOpacity(0.35),
+                      ),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.fullscreen_rounded,
+                          color: Color(0xFFEF4444),
+                          size: 15,
+                        ),
+                        SizedBox(width: 4),
+                        Text(
+                          'Fullscreen',
+                          style: TextStyle(
+                            color: Color(0xFFEF4444),
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.ondemand_video_rounded,
-                        color: Color(0xFFEF4444),
-                        size: 12,
+                ),
+                const SizedBox(width: 6),
+                // Open in External YouTube App
+                GestureDetector(
+                  onTap: _openExternalYouTube,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEF4444).withOpacity(widget.dark ? 0.15 : 0.08),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: const Color(0xFFEF4444).withOpacity(0.3),
                       ),
-                      SizedBox(width: 4),
-                      Text(
-                        'In-App Video',
-                        style: TextStyle(
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.open_in_new_rounded,
                           color: Color(0xFFEF4444),
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w700,
+                          size: 12,
                         ),
-                      ),
-                    ],
+                        SizedBox(width: 4),
+                        Text(
+                          'YouTube',
+                          style: TextStyle(
+                            color: Color(0xFFEF4444),
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -6716,9 +7365,28 @@ class _PropertyVideoSectionState extends State<_PropertyVideoSection> {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(13),
-                child: YoutubePlayer(
-                  controller: _controller,
+                child: AspectRatio(
                   aspectRatio: 16 / 9,
+                  child: _isPlaying
+                      ? Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            WebViewWidget(
+                              controller: _controller.webViewController,
+                            ),
+                            if (!_isReady)
+                              Container(
+                                color: Colors.black,
+                                child: const Center(
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFEF4444)),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        )
+                      : _buildThumbnail(),
                 ),
               ),
             ),
@@ -6729,10 +7397,226 @@ class _PropertyVideoSectionState extends State<_PropertyVideoSection> {
   }
 }
 
+// ── Dedicated Full-Screen Immersive Landscape Player Page ─────────────────────
+class _FullScreenVideoPage extends StatefulWidget {
+  final String videoId;
+  final double startSeconds;
 
-// ══════════════════════════════════════════════════════════════════════
-// Talk to your Advisor Card (Vikaone Style - Screenshot 5)
-// ══════════════════════════════════════════════════════════════════════
+  const _FullScreenVideoPage({
+    required this.videoId,
+    this.startSeconds = 0.0,
+  });
+
+  @override
+  State<_FullScreenVideoPage> createState() => _FullScreenVideoPageState();
+}
+
+class _FullScreenVideoPageState extends State<_FullScreenVideoPage> {
+  late final YoutubePlayerController _fsController;
+  bool _isExiting = false;
+  bool _isFsReady = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // 1. Force landscape orientation for cinematic fullscreen experience
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+    // 2. Hide status bar and navigation bars for immersive display
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
+    _fsController = YoutubePlayerController(
+      params: const YoutubePlayerParams(
+        showControls: true,
+        showFullscreenButton: true,
+        mute: false,
+        showVideoAnnotations: false,
+        enableCaption: false,
+        playsInline: true,
+        strictRelatedVideos: true,
+      ),
+    );
+
+    _fsController.setFullScreenListener((isFullscreen) {
+      if (!isFullscreen && !_isExiting && mounted) {
+        _exitFullscreen();
+      }
+    });
+
+    _initPlayer();
+  }
+
+  Future<void> _initPlayer() async {
+    try {
+      await _fsController.initWithParams(params: _fsController.params);
+      final cleanId = widget.videoId.trim();
+      if (widget.startSeconds > 0) {
+        await _fsController.loadVideoById(
+          videoId: cleanId,
+          startSeconds: widget.startSeconds,
+        );
+      } else {
+        await _fsController.loadVideoById(videoId: cleanId);
+      }
+      await _fsController.playVideo();
+      if (mounted) {
+        setState(() => _isFsReady = true);
+      }
+    } catch (e) {
+      debugPrint('Error initializing fullscreen YouTube player: $e');
+    }
+  }
+
+  Future<void> _exitFullscreen() async {
+    if (_isExiting) return;
+    _isExiting = true;
+
+    double pos = widget.startSeconds;
+    try {
+      pos = await _fsController.currentTime;
+      await _fsController.pauseVideo();
+    } catch (_) {}
+
+    // 1. Restore portrait orientation
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+    // 2. Restore system UI overlay
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+
+    // 3. Small pause to allow device orientation transition to begin
+    await Future.delayed(const Duration(milliseconds: 120));
+
+    if (mounted) {
+      Navigator.of(context).pop(pos);
+    }
+  }
+
+  @override
+  void dispose() {
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    _fsController.close();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && !_isExiting) {
+          _exitFullscreen();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            Center(
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: WebViewWidget(
+                  controller: _fsController.webViewController,
+                ),
+              ),
+            ),
+            if (!_isFsReady)
+              Container(
+                color: Colors.black,
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFEF4444)),
+                  ),
+                ),
+              ),
+            // Top Navigation & Overlay Controls Bar
+            SafeArea(
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black87,
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.black54,
+                          padding: const EdgeInsets.all(8),
+                        ),
+                        tooltip: 'Exit Fullscreen',
+                        onPressed: _exitFullscreen,
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Property Video Tour',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          shadows: [
+                            Shadow(blurRadius: 6, color: Colors.black),
+                          ],
+                        ),
+                      ),
+                      const Spacer(),
+                      // Exit Fullscreen Button
+                      GestureDetector(
+                        onTap: _exitFullscreen,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.white24),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.fullscreen_exit_rounded, color: Colors.white, size: 18),
+                              SizedBox(width: 4),
+                              Text(
+                                'Exit Fullscreen',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _AdvisorCard extends StatelessWidget {
   final bool dark;
   const _AdvisorCard({required this.dark});
@@ -6810,7 +7694,7 @@ class _AdvisorCard extends StatelessWidget {
                       child: Image.network(
                         'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=200&q=80',
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Center(
+                        errorBuilder: (context, error, stackTrace) => const Center(
                           child: Icon(Icons.person, color: Color(0xFF64748B), size: 36),
                         ),
                       ),
@@ -8224,6 +9108,8 @@ class _PropertyDocumentsSection extends StatelessWidget {
   final Color textS;
   final Color cardBg;
   final Color borderC;
+  final bool isExpanded;
+  final VoidCallback? onToggle;
 
   const _PropertyDocumentsSection({
     required this.property,
@@ -8232,6 +9118,8 @@ class _PropertyDocumentsSection extends StatelessWidget {
     required this.textS,
     required this.cardBg,
     required this.borderC,
+    this.isExpanded = false,
+    this.onToggle,
   });
 
   @override
@@ -8257,67 +9145,94 @@ class _PropertyDocumentsSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Section header
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(9),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF6366F1).withOpacity(dark ? 0.25 : 0.12),
-                  borderRadius: BorderRadius.circular(12),
+          // Section header (Accordion)
+          InkWell(
+            onTap: onToggle,
+            borderRadius: BorderRadius.circular(10),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(9),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6366F1).withOpacity(dark ? 0.25 : 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.folder_shared_rounded, color: Color(0xFF818CF8), size: 22),
                 ),
-                child: const Icon(Icons.folder_shared_rounded, color: Color(0xFF818CF8), size: 22),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Legal & Compliance Documents',
-                      style: TextStyle(
-                        color: textP,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.2,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Legal & Compliance',
+                        style: TextStyle(
+                          color: textP,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.2,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Audited by legal counsel & institutional custodians',
-                      style: TextStyle(color: textS, fontSize: 11),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.verified_rounded, color: Color(0xFF10B981), size: 12),
-                    const SizedBox(width: 4),
-                    Text(
-                      '$totalCount Verified',
-                      style: const TextStyle(
-                        color: Color(0xFF10B981),
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w800,
+                      const SizedBox(height: 2),
+                      Text(
+                        'Audited by legal counsel & institutional custodians',
+                        style: TextStyle(color: textS, fontSize: 11),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.verified_rounded, color: Color(0xFF10B981), size: 12),
+                      const SizedBox(width: 4),
+                      Text(
+                        '$totalCount Verified',
+                        style: const TextStyle(
+                          color: Color(0xFF10B981),
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                AnimatedRotation(
+                  turns: isExpanded ? 0.5 : 0.0,
+                  duration: const Duration(milliseconds: 240),
+                  curve: Curves.easeInOut,
+                  child: Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: textP,
+                    size: 24,
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
-          const Divider(height: 1),
-          const SizedBox(height: 16),
+          AnimatedCrossFade(
+            duration: const Duration(milliseconds: 240),
+            firstCurve: Curves.easeInOut,
+            secondCurve: Curves.easeInOut,
+            sizeCurve: Curves.easeInOut,
+            crossFadeState: isExpanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            firstChild: const SizedBox.shrink(),
+            secondChild: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 16),
+                Divider(color: borderC.withOpacity(0.6), height: 1),
+                const SizedBox(height: 16),
 
           // 1. Valuation Report Card (if uploaded)
           if (hasValuation) ...[
@@ -8371,6 +9286,9 @@ class _PropertyDocumentsSection extends StatelessWidget {
               badge: 'Approved',
             ),
           ],
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -8539,6 +9457,220 @@ class _PropertyDocumentsSection extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+
+class _SuggestedPropertyCard extends StatelessWidget {
+  final PropertyModel property;
+  final bool dark;
+  final Color textP;
+  final Color textS;
+  final Color cardBg;
+  final Color borderC;
+  final VoidCallback onTap;
+
+  const _SuggestedPropertyCard({
+    required this.property,
+    required this.dark,
+    required this.textP,
+    required this.textS,
+    required this.cardBg,
+    required this.borderC,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final imgUrl = property.images.isNotEmpty ? property.images.first.url : null;
+    final city = property.location.city ?? '';
+    final propType = (property.propertyType ?? 'Property').toUpperCase();
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 250,
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: borderC, width: 1.2),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(dark ? 0.35 : 0.07),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Image container with badges
+              Stack(
+                children: [
+                  SizedBox(
+                    height: 135,
+                    width: double.infinity,
+                    child: imgUrl != null && imgUrl.isNotEmpty
+                        ? Image.network(
+                            imgUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              color: dark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                              child: const Icon(Icons.apartment_rounded, color: Colors.grey, size: 36),
+                            ),
+                          )
+                        : Container(
+                            color: dark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                            child: const Icon(Icons.apartment_rounded, color: Colors.grey, size: 36),
+                          ),
+                  ),
+                  // Property Type Badge
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.72),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.white.withOpacity(0.2)),
+                      ),
+                      child: Text(
+                        propType,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Yield Badge if available
+                  if (property.expectedRentalYield > 0)
+                    Positioned(
+                      top: 10,
+                      left: 10,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981).withOpacity(0.90),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.trending_up_rounded, color: Colors.white, size: 12),
+                            const SizedBox(width: 3),
+                            Text(
+                              '${property.expectedRentalYield.toStringAsFixed(1)}% Yield',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+
+              // Property details
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            property.title,
+                            style: TextStyle(
+                              color: textP,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (city.isNotEmpty) ...[
+                            const SizedBox(height: 3),
+                            Row(
+                              children: [
+                                Icon(Icons.location_on_outlined, size: 12, color: textS),
+                                const SizedBox(width: 2),
+                                Expanded(
+                                  child: Text(
+                                    city,
+                                    style: TextStyle(color: textS, fontSize: 11),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+
+                      // Price and Brick
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Price',
+                                style: TextStyle(color: textS, fontSize: 10),
+                              ),
+                              Text(
+                                property.formattedPrice,
+                                style: const TextStyle(
+                                  color: AppColors.accent,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (property.allowsBricks && property.brickPrice != null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF10B981).withOpacity(dark ? 0.2 : 0.1),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3)),
+                              ),
+                              child: Text(
+                                '₹${property.brickPrice}/brick',
+                                style: const TextStyle(
+                                  color: Color(0xFF10B981),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

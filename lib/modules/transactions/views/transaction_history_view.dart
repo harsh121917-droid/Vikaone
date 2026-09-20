@@ -341,6 +341,13 @@ class _TabRow extends StatelessWidget {
             onTap: onTap,
             dark: dark,
           ),
+          _Tab(
+            label: 'Wallet',
+            index: 3,
+            selected: selected,
+            onTap: onTap,
+            dark: dark,
+          ),
         ],
       ),
     );
@@ -443,12 +450,18 @@ class _TxnCard extends StatelessWidget {
       ? const Color(0xFF3B82F6)
       : txn.type == 'daily_saving'
       ? AppColors.accent
+      : txn.isWallet
+      ? (txn.isCredit ? const Color(0xFF10B981) : const Color(0xFFEF4444))
       : const Color(0xFF2ecc71);
 
   IconData get _typeIcon => txn.isBrick
       ? Icons.home_work_outlined
       : txn.type == 'daily_saving'
       ? Icons.wb_sunny_rounded
+      : txn.isWallet
+      ? (txn.isCredit
+            ? Icons.account_balance_wallet_rounded
+            : Icons.arrow_upward_rounded)
       : Icons.calendar_month_rounded;
 
   @override
@@ -544,6 +557,10 @@ class _TxnCard extends StatelessWidget {
                     color: txn.isSuccess
                         ? (txn.isBrick
                               ? const Color(0xFF3B82F6)
+                              : txn.isWallet
+                              ? (txn.isCredit
+                                    ? const Color(0xFF10B981)
+                                    : const Color(0xFFEF4444))
                               : const Color(0xFF2ecc71))
                         : AppColors.error,
                     fontSize: 15,

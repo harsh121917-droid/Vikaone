@@ -1,7 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:real_estate/core/theme/app_colors.dart';
 import 'package:real_estate/data/models/transaction_model.dart';
 import 'package:real_estate/data/repositories/transaction_repository.dart';
 
@@ -51,6 +49,9 @@ class TransactionController extends GetxController {
         break;
       case 2:
         filtered.value = all.where((t) => t.isSaving).toList();
+        break;
+      case 3:
+        filtered.value = all.where((t) => t.isWallet).toList();
         break;
       default:
         filtered.value = List.from(all);

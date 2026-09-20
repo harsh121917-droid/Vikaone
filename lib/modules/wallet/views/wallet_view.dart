@@ -42,7 +42,7 @@ class WalletView extends StatelessWidget {
             ),
           ),
           title: Text(
-            'My Wallet',
+            'Vika DRX Wallet',
             style: TextStyle(
               color: tp,
               fontSize: 18,
@@ -1251,12 +1251,16 @@ class _TxnRow extends StatelessWidget {
   Color get _iconColor {
     switch (txn.type) {
       case 'add':
+      case 'drx_deposit':
+      case 'deposit':
         return const Color(0xFF2ecc71);
-      case 'gold_buy':
+      case 'brick_buy':
+      case 'investment':
         return const Color(0xFFD4A017);
-      case 'gold_sell':
-        return const Color(0xFF3B82F6);
+      case 'brick_yield':
+        return const Color(0xFF10B981);
       case 'withdraw':
+      case 'drx_withdraw':
         return const Color(0xFFe74c3c);
       default:
         return const Color(0xFF8A95B0);
@@ -1266,12 +1270,16 @@ class _TxnRow extends StatelessWidget {
   IconData get _icon {
     switch (txn.type) {
       case 'add':
+      case 'drx_deposit':
+      case 'deposit':
         return Icons.add_rounded;
-      case 'gold_buy':
-        return Icons.shopping_bag_outlined;
-      case 'gold_sell':
-        return Icons.sell_outlined;
+      case 'brick_buy':
+      case 'investment':
+        return Icons.apartment_rounded;
+      case 'brick_yield':
+        return Icons.trending_up_rounded;
       case 'withdraw':
+      case 'drx_withdraw':
         return Icons.arrow_upward_rounded;
       default:
         return Icons.swap_horiz_rounded;

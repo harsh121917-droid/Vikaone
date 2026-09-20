@@ -1649,12 +1649,12 @@ class _SaveGoldSheetState extends State<_SaveGoldSheet> {
               GestureDetector(
                 onTap: _total >= 100 && !_saving
                     ? () async {
-                        setState(() => _saving = true);
-                        final ok = await WalletController.to.buyGold(
-                          amount: _amt,
-                        );
-                        setState(() => _saving = false);
-                        if (ok) Get.back();
+                        // setState(() => _saving = true);
+                        // final ok = await WalletController.to.buyGold(
+                        //   amount: _amt,
+                        // );
+                        // setState(() => _saving = false);
+                        // if (ok) Get.back();
                       }
                     : null,
                 child: Container(
