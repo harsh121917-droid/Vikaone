@@ -15,6 +15,7 @@ import '../../../data/models/property_model.dart';
 import '../../../routes/app_routes.dart';
 import '../controllers/main_shell_controller.dart';
 import '../../wishlist/controllers/wishlist_controller.dart';
+import '../../wallet/controllers/wallet_controller.dart';
 
 class CategoryModel {
   final String label;
@@ -59,7 +60,9 @@ class HomeView extends GetView<HomeController> {
                 _Hero3DHeader(greeting: _greeting(), dark: dark),
                 const SizedBox(height: 20),
                 _GlassSearchBar(controller: searchCtrl, dark: dark),
-                const SizedBox(height: 28),
+                const SizedBox(height: 18),
+                _DRXWalletHomeCard(dark: dark),
+                const SizedBox(height: 24),
                 _SectionHeader(
                   title: 'Browse by Category',
                   onSeeAll: () {
@@ -2754,3 +2757,556 @@ class _HomeVideoFullScreenPageState extends State<_HomeVideoFullScreenPage> {
     );
   }
 }
+
+// ══════════════════════════════════════════════════════════════════
+// DRX Investment Wallet Front-Page Card (Live Balance & Rewards)
+// ══════════════════════════════════════════════════════════════════
+class _DRXWalletHomeCard extends StatefulWidget {
+  final bool dark;
+  const _DRXWalletHomeCard({required this.dark});
+
+  @override
+  State<_DRXWalletHomeCard> createState() => _DRXWalletHomeCardState();
+}
+
+class _DRXWalletHomeCardState extends State<_DRXWalletHomeCard> {
+  late final WalletController _walletCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _walletCtrl = Get.isRegistered<WalletController>()
+        ? Get.find<WalletController>()
+        : Get.put(WalletController());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _walletCtrl.loadWallet();
+    });
+  }
+
+  void _showQuickAddSheet(BuildContext context) {
+    final amounts = [1000.0, 5000.0, 10000.0, 25000.0];
+    final customCtrl = TextEditingController(text: '5000');
+    final dark = widget.dark;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          final amt = double.tryParse(customCtrl.text.replaceAll(',', '')) ?? 0.0;
+          return Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+              decoration: BoxDecoration(
+                color: dark ? const Color(0xFF0F172A) : Colors.white,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                border: Border(
+                  top: BorderSide(
+                    color: dark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+                    width: 1,
+                  ),
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: dark ? Colors.white24 : Colors.black12,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF10B981).withOpacity(0.15),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.account_balance_wallet_rounded, color: Color(0xFF10B981), size: 18),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            'Add DRX Funds',
+                            style: TextStyle(
+                              color: dark ? Colors.white : AppColors.textPrimary,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        icon: Icon(Icons.close_rounded, color: dark ? Colors.white70 : Colors.black54),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    'Enter Amount (₹)',
+                    style: TextStyle(
+                      color: dark ? const Color(0xFF94A3B8) : AppColors.textSecondary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: customCtrl,
+                    keyboardType: TextInputType.number,
+                    style: TextStyle(
+                      color: dark ? Colors.white : Colors.black,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                    ),
+                    decoration: InputDecoration(
+                      prefixText: '₹ ',
+                      prefixStyle: TextStyle(
+                        color: dark ? const Color(0xFF10B981) : const Color(0xFF059669),
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                      ),
+                      filled: true,
+                      fillColor: dark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    ),
+                    onChanged: (_) => setSheetState(() {}),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: amounts.map((a) {
+                      final isSel = (amt == a);
+                      return Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            customCtrl.text = a.toStringAsFixed(0);
+                            setSheetState(() {});
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 3),
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              color: isSel
+                                  ? const Color(0xFF10B981)
+                                  : (dark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Center(
+                              child: Text(
+                                '+₹${(a / 1000).toStringAsFixed(0)}k',
+                                style: TextStyle(
+                                  color: isSel ? Colors.white : (dark ? Colors.white70 : Colors.black87),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF38BDF8).withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFF38BDF8).withOpacity(0.2)),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.shield_outlined, color: Color(0xFF38BDF8), size: 16),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Deposited money is 100% protected and never subject to expiration.',
+                            style: TextStyle(color: Color(0xFF38BDF8), fontSize: 11, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: amt >= 100
+                          ? () {
+                              Navigator.pop(ctx);
+                              _walletCtrl.addMoney(amt);
+                            }
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF10B981),
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: Colors.grey.withOpacity(0.3),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        elevation: 0,
+                      ),
+                      child: Text(
+                        amt >= 100 ? 'Proceed to Pay ₹${amt.toStringAsFixed(0)}' : 'Min Amount ₹100',
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = widget.dark;
+    final cardBg = dark ? const Color(0xFF0F172A) : Colors.white;
+    final borderC = dark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0);
+    final textP = dark ? Colors.white : AppColors.textPrimary;
+    final textS = dark ? const Color(0xFF94A3B8) : AppColors.textSecondary;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Obx(() {
+        final w = _walletCtrl.wallet.value;
+        final avail = w?.availableBalance ?? 0.0;
+        final deposited = w?.balance ?? 0.0;
+        final reward = w?.rewardBalance ?? 0.0;
+        final hasExp = w?.hasExpiringReward ?? false;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: cardBg,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: borderC, width: 1.2),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(dark ? 0.45 : 0.06),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(22),
+            child: Stack(
+              children: [
+                // Top subtle ambient glow
+                Positioned(
+                  top: -20,
+                  right: -20,
+                  child: Container(
+                    width: 110,
+                    height: 110,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFF10B981).withOpacity(dark ? 0.12 : 0.08),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header Row
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                width: 38,
+                                height: 38,
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFF065F46), Color(0xFF10B981)],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFF10B981).withOpacity(0.35),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: const Icon(
+                                  Icons.account_balance_wallet_rounded,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'DRX INVESTMENT WALLET',
+                                    style: TextStyle(
+                                      color: textS,
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 0.8,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Vika Real Estate Capital',
+                                    style: TextStyle(
+                                      color: textP,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          // Live balance status badge
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF10B981).withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3)),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(Icons.circle, color: Color(0xFF10B981), size: 7),
+                                SizedBox(width: 5),
+                                Text(
+                                  'Live Balance',
+                                  style: TextStyle(
+                                    color: Color(0xFF10B981),
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Balance Section
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Text(
+                            '₹${avail.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              color: dark ? const Color(0xFF34D399) : const Color(0xFF059669),
+                              fontSize: 28,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Available',
+                            style: TextStyle(
+                              color: textS,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Balance Sub-Row (Deposited vs Reward Cash)
+                      Row(
+                        children: [
+                          // Deposited
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: dark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.shield_outlined, color: Color(0xFF38BDF8), size: 12),
+                                const SizedBox(width: 5),
+                                Text(
+                                  '₹${deposited.toStringAsFixed(0)} Deposited (No Expiry)',
+                                  style: TextStyle(
+                                    color: dark ? const Color(0xFFE2E8F0) : const Color(0xFF334155),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Reward Cash
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF59E0B).withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: const Color(0xFFF59E0B).withOpacity(0.3)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.card_giftcard_rounded, color: Color(0xFFF59E0B), size: 12),
+                                const SizedBox(width: 5),
+                                Text(
+                                  '₹${reward.toStringAsFixed(0)} Rewards',
+                                  style: const TextStyle(
+                                    color: Color(0xFFF59E0B),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      // Expiry Warning Alert (if any active reward money is expiring soon)
+                      if (hasExp) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEF4444).withOpacity(0.10),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFEF4444).withOpacity(0.3)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.timer_outlined, color: Color(0xFFEF4444), size: 15),
+                              const SizedBox(width: 7),
+                              Expanded(
+                                child: Text(
+                                  '₹${w?.expiringAmount?.toStringAsFixed(0)} reward cash expires in ${w?.expiringDaysLeft} days. Auto-used first on brick purchases.',
+                                  style: const TextStyle(
+                                    color: Color(0xFFEF4444),
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+
+                      const SizedBox(height: 16),
+
+                      // Action Buttons
+                      Row(
+                        children: [
+                          // Add Money
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => _showQuickAddSheet(context),
+                              child: Container(
+                                height: 42,
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFF10B981), Color(0xFF059669)],
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFF10B981).withOpacity(0.3),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.add_rounded, color: Colors.white, size: 18),
+                                    SizedBox(width: 6),
+                                    Text(
+                                      'Add Funds',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          // View Wallet
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => Get.toNamed(AppRoutes.wallet),
+                              child: Container(
+                                height: 42,
+                                decoration: BoxDecoration(
+                                  color: dark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: dark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      'View Wallet',
+                                      style: TextStyle(
+                                        color: textP,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Icon(Icons.arrow_forward_rounded, color: textP, size: 15),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }),
+    );
+  }
+}
+

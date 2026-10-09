@@ -230,31 +230,64 @@ class WalletView extends StatelessWidget {
                                 ),
                               );
                             }),
+                            // Expiry notice banner (if user has active reward money expiring soon)
+                            Obx(() {
+                              final w = ctrl.wallet.value;
+                              if (w == null || !w.hasExpiringReward) return const SizedBox.shrink();
+                              return Container(
+                                margin: const EdgeInsets.only(top: 14),
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF59E0B).withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: const Color(0xFFF59E0B).withOpacity(0.4),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.timer_outlined, color: Color(0xFFF59E0B), size: 16),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        '₹${w.expiringAmount?.toStringAsFixed(0)} reward cash expires in ${w.expiringDaysLeft} days (${w.expiringDescription ?? "Monthly Expiry"}). Deposited funds never expire.',
+                                        style: const TextStyle(
+                                          color: Color(0xFFF59E0B),
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
                             const SizedBox(height: 16),
 
-                            // Stats row
+                            // Stats row: Deposited (never expires) vs Reward cash vs Total Added
                             Obx(() {
                               final w = ctrl.wallet.value;
                               return Row(
                                 children: [
                                   _StatChip(
-                                    '₹${(w?.totalAdded ?? 0).toStringAsFixed(0)}',
-                                    'Added',
-                                    const Color(0xFF2ecc71),
-                                    dark,
-                                  ),
-                                  const SizedBox(width: 10),
-                                  _StatChip(
-                                    '₹${(w?.totalWithdrawn ?? 0).toStringAsFixed(0)}',
-                                    'Withdrawn',
-                                    const Color(0xFF3B82F6),
-                                    dark,
-                                  ),
-                                  const SizedBox(width: 10),
-                                  _StatChip(
                                     '₹${(w?.balance ?? 0).toStringAsFixed(0)}',
-                                    'Total Bal',
-                                    const Color(0xFFD4A017),
+                                    'Deposited (No Expiry)',
+                                    const Color(0xFF10B981),
+                                    dark,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _StatChip(
+                                    '₹${(w?.rewardBalance ?? 0).toStringAsFixed(0)}',
+                                    'Reward Cash',
+                                    const Color(0xFFF59E0B),
+                                    dark,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _StatChip(
+                                    '₹${(w?.totalAdded ?? 0).toStringAsFixed(0)}',
+                                    'Total Added',
+                                    const Color(0xFF3B82F6),
                                     dark,
                                   ),
                                 ],
@@ -703,8 +736,11 @@ class _WithdrawSheet extends StatefulWidget {
 class _WithdrawSheetState extends State<_WithdrawSheet> {
   final _ctrl = TextEditingController();
   double get _amount => double.tryParse(_ctrl.text) ?? 0;
-  double get _available => widget.ctrl.wallet.value?.availableBalance ?? 0;
-  bool get _valid => _amount >= 100 && _amount <= _available;
+  double get _deposited => widget.ctrl.wallet.value?.balance ?? 0;
+  double get _locked => widget.ctrl.wallet.value?.lockedBalance ?? 0;
+  double get _withdrawable => (_deposited - _locked).clamp(0.0, double.infinity);
+  double get _reward => widget.ctrl.wallet.value?.rewardBalance ?? 0;
+  bool get _valid => _amount >= 100 && _amount <= _withdrawable;
   String? _selectedBankId;
 
   @override
@@ -767,12 +803,69 @@ class _WithdrawSheetState extends State<_WithdrawSheet> {
               const SizedBox(height: 6),
               Padding(
                 padding: const EdgeInsets.only(left: 34),
-                child: Text(
-                  'Available: ₹${_available.toStringAsFixed(2)}',
-                  style: TextStyle(color: ts, fontSize: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Withdrawable: ₹${_withdrawable.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        color: _withdrawable >= 100
+                            ? const Color(0xFF10B981)
+                            : ts,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (_reward > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          '₹${widget.ctrl.wallet.value!.fmtReward} Reward Cash is for investing only',
+                          style: const TextStyle(
+                            color: Color(0xFFD4A017),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 16),
+
+              if (_reward > 0)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 14),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD4A017).withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFFD4A017).withOpacity(0.25),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.info_outline_rounded,
+                        color: Color(0xFFD4A017),
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Promotional Reward Cash (₹${widget.ctrl.wallet.value!.fmtReward}) cannot be withdrawn to a bank. Only deposited funds can be withdrawn.',
+                          style: TextStyle(
+                            color: tp,
+                            fontSize: 11.5,
+                            height: 1.3,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
               // Input
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -834,25 +927,33 @@ class _WithdrawSheetState extends State<_WithdrawSheet> {
                   ],
                 ),
               ),
-              if (_amount > _available)
-                const Padding(
-                  padding: EdgeInsets.only(top: 4),
+              if (_amount > _withdrawable)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
                   child: Text(
-                    'Exceeds available balance',
-                    style: TextStyle(color: Color(0xFFe74c3c), fontSize: 12),
+                    _withdrawable <= 0
+                        ? 'No withdrawable deposited funds. Reward cash cannot be withdrawn.'
+                        : 'Exceeds withdrawable balance (Max: ₹${_withdrawable.toStringAsFixed(2)})',
+                    style: const TextStyle(
+                      color: Color(0xFFe74c3c),
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               const SizedBox(height: 12),
               Row(
                 children: [25, 50, 75, 100].map((pct) {
-                  final amt = _available * pct / 100;
+                  final amt = _withdrawable * pct / 100;
                   final active = _ctrl.text == amt.toStringAsFixed(0);
                   return Expanded(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 3),
                       child: GestureDetector(
-                        onTap: () =>
-                            setState(() => _ctrl.text = amt.toStringAsFixed(0)),
+                        onTap: _withdrawable > 0
+                            ? () => setState(
+                                  () => _ctrl.text = amt.toStringAsFixed(0),
+                                )
+                            : null,
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 180),
                           padding: const EdgeInsets.symmetric(vertical: 9),
@@ -1124,7 +1225,9 @@ class _WithdrawSheetState extends State<_WithdrawSheet> {
                                 Text(
                                   _valid
                                       ? 'Withdraw ₹${_amount.toStringAsFixed(0)}'
-                                      : 'Enter amount',
+                                      : (_withdrawable < 100
+                                          ? 'Requires ₹100 Deposited Funds'
+                                          : 'Enter amount'),
                                   style: TextStyle(
                                     color: _valid
                                         ? Colors.white

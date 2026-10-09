@@ -4,6 +4,11 @@ import 'package:real_estate/core/network/api_client.dart';
 class WalletModel {
   final double balance, lockedBalance, availableBalance, pendingCredit;
   final double totalAdded, totalWithdrawn;
+  final double rewardBalance;
+  final double? expiringAmount;
+  final DateTime? expiringAt;
+  final int? expiringDaysLeft;
+  final String? expiringDescription;
   final List<WalletTxnModel> transactions;
 
   const WalletModel({
@@ -13,20 +18,33 @@ class WalletModel {
     required this.pendingCredit,
     required this.totalAdded,
     required this.totalWithdrawn,
+    this.rewardBalance = 0.0,
+    this.expiringAmount,
+    this.expiringAt,
+    this.expiringDaysLeft,
+    this.expiringDescription,
     required this.transactions,
   });
 
-  factory WalletModel.fromJson(Map<String, dynamic> j) => WalletModel(
-    balance: (j['balance'] ?? 0) * 1.0,
-    lockedBalance: (j['lockedBalance'] ?? 0) * 1.0,
-    availableBalance: (j['availableBalance'] ?? 0) * 1.0,
-    pendingCredit: (j['pendingCredit'] ?? 0) * 1.0,
-    totalAdded: (j['totalAdded'] ?? 0) * 1.0,
-    totalWithdrawn: (j['totalWithdrawn'] ?? 0) * 1.0,
-    transactions: (j['transactions'] as List? ?? [])
-        .map((e) => WalletTxnModel.fromJson(e))
-        .toList(),
-  );
+  factory WalletModel.fromJson(Map<String, dynamic> j) {
+    final exp = j['expiringReward'] as Map<String, dynamic>?;
+    return WalletModel(
+      balance: (j['balance'] ?? 0) * 1.0,
+      lockedBalance: (j['lockedBalance'] ?? 0) * 1.0,
+      availableBalance: (j['availableBalance'] ?? 0) * 1.0,
+      pendingCredit: (j['pendingCredit'] ?? 0) * 1.0,
+      totalAdded: (j['totalAdded'] ?? 0) * 1.0,
+      totalWithdrawn: (j['totalWithdrawn'] ?? 0) * 1.0,
+      rewardBalance: (j['rewardBalance'] ?? 0) * 1.0,
+      expiringAmount: exp != null && exp['amount'] != null ? (exp['amount'] as num).toDouble() : null,
+      expiringAt: exp != null && exp['expiresAt'] != null ? DateTime.tryParse(exp['expiresAt'].toString()) : null,
+      expiringDaysLeft: exp != null ? (exp['daysLeft'] as num?)?.toInt() : null,
+      expiringDescription: exp != null ? exp['description']?.toString() : null,
+      transactions: (j['transactions'] as List? ?? [])
+          .map((e) => WalletTxnModel.fromJson(e))
+          .toList(),
+    );
+  }
 
   String fmt(double n) {
     if (n >= 100000) return '₹${(n / 100000).toStringAsFixed(1)}L';
@@ -36,6 +54,8 @@ class WalletModel {
   String get fmtAvailable => fmt(availableBalance);
   String get fmtBalance => fmt(balance);
   String get fmtLocked => fmt(lockedBalance);
+  String get fmtReward => fmt(rewardBalance);
+  bool get hasExpiringReward => expiringAmount != null && expiringAmount! > 0 && expiringDaysLeft != null;
 }
 
 class WalletTxnModel {
@@ -87,7 +107,7 @@ class WalletTxnModel {
     return '${d.day} ${months[d.month - 1]} ${d.year}';
   }
 
-  bool get isCredit => type == 'add' || type == 'drx_deposit' || type == 'brick_yield' || type == 'deposit' || type == 'manual_credit';
+  bool get isCredit => type == 'add' || type == 'drx_deposit' || type == 'brick_yield' || type == 'deposit' || type == 'manual_credit' || type == 'reward_credit';
   bool get isSuccess => status == 'success';
 }
 
