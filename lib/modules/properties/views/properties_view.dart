@@ -815,8 +815,11 @@ class _PropertyCardState extends State<_PropertyCard>
 
     final available = p.availableBricks;
     final pct = p.soldPercent;
-    final totalIrr = (p.expectedRentalYield + p.expectedAppreciation)
-        .toStringAsFixed(1);
+    final hasXirr = (p.targetXirr != null && p.targetXirr! > 0);
+    final irrLabel = hasXirr ? 'TARGET XIRR' : 'TARGET IRR';
+    final irrVal = hasXirr ? p.targetXirr!.toStringAsFixed(1) : (p.expectedRentalYield + p.expectedAppreciation).toStringAsFixed(1);
+    final irrSuffix = hasXirr ? 'XIRR' : 'IRR';
+
 
     return FadeTransition(
       opacity: _f,
@@ -960,7 +963,7 @@ class _PropertyCardState extends State<_PropertyCard>
                                   ],
                                 ),
                                 child: Text(
-                                  '${((p.expectedAppreciation * 4) + (p.expectedRentalYield * 4)).round()}% Potential Return',
+                                  '${p.targetXirr != null && p.targetXirr! > 0 ? (p.targetXirr! * 4).round() : ((p.expectedAppreciation * 4) + (p.expectedRentalYield * 4)).round()}% Potential Return',
                                   style: const TextStyle(
                                     color: Color(0xFF0F172A),
                                     fontSize: 12,
@@ -1162,7 +1165,7 @@ class _PropertyCardState extends State<_PropertyCard>
                                         CrossAxisAlignment.center,
                                     children: [
                                       Text(
-                                        'TARGET IRR',
+                                        irrLabel,
                                         style: TextStyle(
                                           color: ts,
                                           fontSize: 9,
@@ -1171,7 +1174,7 @@ class _PropertyCardState extends State<_PropertyCard>
                                       ),
                                       const SizedBox(height: 3),
                                       Text(
-                                        '$totalIrr% IRR',
+                                        '$irrVal% $irrSuffix',
                                         style: const TextStyle(
                                           color: Color(0xFF38BDF8),
                                           fontSize: 13,

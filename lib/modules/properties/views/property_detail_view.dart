@@ -12,6 +12,9 @@ import '../controllers/property_detail_controller.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/controllers/theme_controller.dart';
 import '../../../data/models/property_model.dart';
+import '../../../core/constants/api_constants.dart';
+import '../../../core/network/api_client.dart';
+import '../../auth/controllers/auth_controller.dart';
 
 
 Future<void> _previewPdfDocument(String? url,
@@ -1349,7 +1352,11 @@ Widget _buildInvestmentTab(
         const SizedBox(height: 20),
 
         // Talk to your Advisor Card (Screenshot 5)
-        _AdvisorCard(dark: dark),
+        _AdvisorCard(
+          dark: dark,
+          property: property,
+          controller: widget.controller,
+        ),
         const SizedBox(height: 20),
 
         // Institutional Custody Card (Accordion)
@@ -3032,7 +3039,7 @@ class _BricksSectionState extends State<_BricksSection>
                 // Primary Direct Buy Button (Overflow Safe)
                 GestureDetector(
                   onTap: available > 0
-                      ? () => showDirectBuySheet(
+                      ? () => showScheduleCallSheet(
                             context: context,
                             controller: controller,
                             property: widget.property,
@@ -3075,7 +3082,7 @@ class _BricksSectionState extends State<_BricksSection>
                             child: FittedBox(
                               fit: BoxFit.scaleDown,
                               child: Text(
-                                available > 0 ? 'Buy Full Property (100% Ownership) →' : 'Sold Out',
+                                available > 0 ? 'Schedule a Call (100% Ownership) →' : 'Sold Out',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 15,
@@ -3092,7 +3099,7 @@ class _BricksSectionState extends State<_BricksSection>
                 const SizedBox(height: 8),
                 Center(
                   child: Text(
-                    'Protected by Regulated Escrow & Razorpay',
+                    'Speak with an investment advisor · Dedicated NRI & HNIs desk',
                     style: TextStyle(
                       color: dark ? DarkColors.textHint : AppColors.textHint,
                       fontSize: 11,
@@ -3996,272 +4003,471 @@ void showDirectBuySheet({
   required PropertyModel property,
   required bool dark,
 }) {
-  final available = property.availableBricks;
-  final brickPrice = property.brickPrice ?? 0;
-  final totalAmount = available * brickPrice;
-  final agreedTerms = false.obs;
+  showScheduleCallSheet(
+    context: context,
+    controller: controller,
+    property: property,
+    dark: dark,
+  );
+}
 
-  final sheetBg = dark ? DarkColors.surface : Colors.white;
-  final textP = dark ? DarkColors.textPrimary : AppColors.textPrimary;
-  final textS = dark ? DarkColors.textSecondary : AppColors.textSecondary;
+void showScheduleCallSheet({
+  required BuildContext context,
+  required PropertyDetailController controller,
+  required PropertyModel property,
+  required bool dark,
+}) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (sheetCtx) => _ScheduleCallSheet(property: property, dark: dark),
+  );
+}
 
-  Get.bottomSheet(
-    Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.85,
+/// "Request Callback" bottom sheet (matches schedule_call_ref.png).
+/// Advisor title/subtitle/photo, time slots and number of days are admin-configurable per property.
+class _ScheduleCallSheet extends StatefulWidget {
+  const _ScheduleCallSheet({required this.property, required this.dark});
+  final PropertyModel property;
+  final bool dark;
+
+  @override
+  State<_ScheduleCallSheet> createState() => _ScheduleCallSheetState();
+}
+
+class _ScheduleCallSheetState extends State<_ScheduleCallSheet> {
+  static const _days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  static const _months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+
+  late final List<DateTime> _dates;
+  late final List<String> _slots;
+  int? _dateIdx;
+  String? _slot;
+  bool _submitting = false;
+  String? _error;
+  final _phoneCtrl = TextEditingController();
+  String _userName = 'Investor';
+  String _userEmail = '';
+  bool _needPhone = true;
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    _dates = List.generate(widget.property.scheduleDays, (i) => today.add(Duration(days: i)));
+    _slots = widget.property.scheduleSlots;
+    try {
+      final u = Get.find<AuthController>().user.value;
+      if (u != null) {
+        _userName = (u.name).toString().trim().isNotEmpty ? u.name : 'Investor';
+        _userEmail = (u.email).toString();
+        final ph = (u.phone ?? '').toString().trim();
+        if (ph.isNotEmpty) {
+          _phoneCtrl.text = ph;
+          _needPhone = false;
+        }
+      }
+    } catch (_) {}
+  }
+
+  @override
+  void dispose() {
+    _phoneCtrl.dispose();
+    super.dispose();
+  }
+
+  bool get _canConfirm => _dateIdx != null && _slot != null && !_submitting;
+
+  Future<void> _submit() async {
+    final phone = _phoneCtrl.text.trim();
+    if (phone.replaceAll(RegExp(r'[^0-9]'), '').length < 10) {
+      setState(() {
+        _needPhone = true;
+        _error = 'Please enter a valid 10-digit phone number.';
+      });
+      return;
+    }
+    final d = _dates[_dateIdx!];
+    final dateStr = '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+    final prettyDate = '${_days[d.weekday - 1]} ${d.day.toString().padLeft(2, '0')} ${_months[d.month - 1]}';
+    final p = widget.property;
+
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
+    try {
+      final res = await ApiClient.instance.post(
+        ApiConstants.enquiries,
+        data: {
+          'name': _userName,
+          if (_userEmail.contains('@')) 'email': _userEmail,
+          'phone': phone,
+          'subject': 'Callback Request - ${p.title}',
+          'message': 'Investor requested an advisor callback for "${p.title}" on $prettyDate at $_slot.',
+          'type': 'full_ownership_lead',
+          'propertyId': p.id,
+          'propertyTitle': p.title,
+          'preferredDate': dateStr,
+          'preferredTime': _slot,
+          'source': 'app',
+        },
+      );
+      final ok = res.data is Map ? (res.data['success'] != false) : true;
+      if (!ok) throw Exception(res.data['message'] ?? 'Request failed');
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      _showSuccess(prettyDate);
+    } catch (e) {
+      String msg = 'Could not schedule the call. Please check your internet and try again.';
+      try {
+        final dynamic err = e;
+        final data = err.response?.data;
+        if (data is Map && data['message'] != null) msg = data['message'].toString();
+      } catch (_) {}
+      if (mounted) {
+        setState(() {
+          _submitting = false;
+          _error = msg;
+        });
+      }
+    }
+  }
+
+  void _showSuccess(String prettyDate) {
+    final dark = widget.dark;
+    Get.dialog(
+      Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        backgroundColor: dark ? DarkColors.surface : Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 62,
+                height: 62,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 36),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Callback Scheduled!',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: dark ? DarkColors.textPrimary : AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Our advisor will call you on $prettyDate at $_slot regarding "${widget.property.title}".',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  height: 1.45,
+                  color: dark ? DarkColors.textSecondary : AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 22),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(Get.overlayContext ?? Get.context!).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: dark ? Colors.white : const Color(0xFF111111),
+                    foregroundColor: dark ? Colors.black : Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                  ),
+                  child: const Text('Got it', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
-      padding: EdgeInsets.fromLTRB(
-        24,
-        16,
-        24,
-        MediaQuery.of(context).viewInsets.bottom + 32,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = widget.dark;
+    final p = widget.property;
+    final bg = dark ? DarkColors.surface : Colors.white;
+    final textP = dark ? DarkColors.textPrimary : const Color(0xFF111111);
+    final textS = dark ? DarkColors.textSecondary : const Color(0xFF6B7280);
+    final border = dark ? const Color(0xFF334155) : const Color(0xFFE5E7EB);
+    final selBorder = dark ? Colors.white : const Color(0xFF111111);
+    final selFill = dark ? const Color(0xFF1F2937) : const Color(0xFFF3F4F6);
+    final mq = MediaQuery.of(context);
+
+    Widget sectionTitle(String t) => Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Text(t, style: TextStyle(color: textP, fontSize: 16, fontWeight: FontWeight.w600)),
+        );
+
+    final img = (p.scheduleAdvisorImage ?? '').trim();
+    final advisorAvatar = ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: SizedBox(
+        width: 72,
+        height: 72,
+        child: img.isNotEmpty
+            ? Image.network(
+                img,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _advisorFallback(dark),
+              )
+            : _advisorFallback(dark),
       ),
+    );
+
+    return Container(
+      constraints: BoxConstraints(maxHeight: mq.size.height * 0.92),
       decoration: BoxDecoration(
-        color: sheetBg,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        border: dark
-            ? const Border(top: BorderSide(color: DarkColors.inputBorder))
-            : null,
+        color: bg,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      child: SingleChildScrollView(
+      padding: EdgeInsets.only(bottom: mq.viewInsets.bottom),
+      child: SafeArea(
+        top: false,
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: dark ? DarkColors.inputBorder : AppColors.inputBorder,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF6366F1).withOpacity(0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.business_rounded,
-                    color: Color(0xFF6366F1),
-                    size: 22,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Direct Buy (Full Property)',
-                        style: TextStyle(
-                          color: textP,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '100% Sole Ownership Acquisition',
-                        style: TextStyle(color: textS, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 10),
             Container(
-              padding: const EdgeInsets.all(16),
+              width: 40,
+              height: 4,
               decoration: BoxDecoration(
-                color: dark ? DarkColors.surface2 : const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: dark ? DarkColors.inputBorder : AppColors.inputBorder,
-                ),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Property',
-                        style: TextStyle(color: textS, fontSize: 13),
-                      ),
-                      Flexible(
-                        child: Text(
-                          property.title,
-                          style: TextStyle(
-                            color: textP,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const Divider(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Ownership Share',
-                        style: TextStyle(color: textS, fontSize: 13),
-                      ),
-                      const Text(
-                        '100% Full Ownership',
-                        style: TextStyle(
-                          color: Color(0xFF10B981),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Allocated Bricks',
-                        style: TextStyle(color: textS, fontSize: 13),
-                      ),
-                      Text(
-                        'All $available remaining bricks',
-                        style: TextStyle(
-                          color: textP,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const Divider(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Total Purchase Price',
-                        style: TextStyle(
-                          color: textP,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      Text(
-                        '₹${totalAmount.toLocaleString()}',
-                        style: const TextStyle(
-                          color: AppColors.accent,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                color: dark ? const Color(0xFF475569) : const Color(0xFF374151),
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const SizedBox(height: 14),
-            _ReturnsProjection(
-              principal: totalAmount,
-              appreciation: property.expectedAppreciation,
-              rentalYield: property.expectedRentalYield,
-              dark: dark,
-            ),
-            const SizedBox(height: 14),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFF6366F1).withOpacity(dark ? 0.15 : 0.08),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: const Color(0xFF6366F1).withOpacity(0.3),
-                ),
-              ),
-              child: Obx(
-                () => Row(
+            const SizedBox(height: 18),
+            Text('Request Callback', style: TextStyle(color: textP, fontSize: 20, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 16),
+            Divider(height: 1, color: border),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Advisor
+                    Row(
+                      children: [
+                        advisorAvatar,
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(p.scheduleTitle,
+                                  style: TextStyle(color: textP, fontSize: 15, fontWeight: FontWeight.w600)),
+                              const SizedBox(height: 4),
+                              Text(p.scheduleSubtitle,
+                                  style: TextStyle(color: textS, fontSize: 13.5, height: 1.3)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Dates
+                    sectionTitle('Select date'),
                     SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: Checkbox(
-                        value: agreedTerms.value,
-                        onChanged: (v) => agreedTerms.value = v ?? false,
-                        activeColor: const Color(0xFF6366F1),
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      height: 92,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _dates.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 12),
+                        itemBuilder: (_, i) {
+                          final d = _dates[i];
+                          final sel = _dateIdx == i;
+                          return GestureDetector(
+                            onTap: () => setState(() {
+                              _dateIdx = i;
+                              _error = null;
+                            }),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 160),
+                              width: 64,
+                              decoration: BoxDecoration(
+                                color: sel ? selFill : bg,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: sel ? selBorder : border, width: sel ? 1.6 : 1),
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(_days[d.weekday - 1],
+                                      style: TextStyle(color: sel ? textP : textS, fontSize: 13, fontWeight: FontWeight.w500)),
+                                  const SizedBox(height: 4),
+                                  Text(d.day.toString().padLeft(2, '0'),
+                                      style: TextStyle(
+                                          color: sel ? textP : textS, fontSize: 20, fontWeight: FontWeight.w700)),
+                                  const SizedBox(height: 4),
+                                  Text(_months[d.month - 1],
+                                      style: TextStyle(color: sel ? textP : textS, fontSize: 10, fontWeight: FontWeight.w500)),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'I confirm I am acquiring this complete property in full (Direct Buy). Upon successful transaction, 100% legal title and rental entitlement transfer to my portfolio.',
-                        style: TextStyle(
-                          color: textS,
-                          fontSize: 11,
-                          height: 1.4,
+                    const SizedBox(height: 24),
+
+                    // Times
+                    sectionTitle('Select time'),
+                    LayoutBuilder(builder: (_, c) {
+                      const gap = 12.0;
+                      final w = (c.maxWidth - gap * 2) / 3;
+                      return Wrap(
+                        spacing: gap,
+                        runSpacing: gap,
+                        children: [
+                          for (final s in _slots)
+                            GestureDetector(
+                              onTap: () => setState(() {
+                                _slot = s;
+                                _error = null;
+                              }),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 160),
+                                width: w,
+                                padding: const EdgeInsets.symmetric(vertical: 11),
+                                decoration: BoxDecoration(
+                                  color: _slot == s ? selFill : bg,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                      color: _slot == s ? selBorder : border, width: _slot == s ? 1.6 : 1),
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(s,
+                                    style: TextStyle(
+                                      color: _slot == s ? textP : textS,
+                                      fontSize: 14,
+                                      fontWeight: _slot == s ? FontWeight.w600 : FontWeight.w400,
+                                    )),
+                              ),
+                            ),
+                        ],
+                      );
+                    }),
+
+                    // Phone (only if not on profile, or invalid)
+                    if (_needPhone) ...[
+                      const SizedBox(height: 22),
+                      sectionTitle('Phone number'),
+                      TextField(
+                        controller: _phoneCtrl,
+                        keyboardType: TextInputType.phone,
+                        maxLength: 13,
+                        style: TextStyle(color: textP, fontSize: 14),
+                        decoration: InputDecoration(
+                          counterText: '',
+                          hintText: 'Number for advisor callback',
+                          hintStyle: TextStyle(color: textS),
+                          prefixIcon: Icon(Icons.phone_rounded, color: textS, size: 18),
+                          isDense: true,
+                          enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: border)),
+                          focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: selBorder)),
                         ),
                       ),
-                    ),
+                    ],
+
+                    if (_error != null) ...[
+                      const SizedBox(height: 14),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEF4444).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(_error!,
+                            style: const TextStyle(color: Color(0xFFEF4444), fontSize: 12.5, fontWeight: FontWeight.w600)),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 20),
-            Obx(() {
-              final purchasing = controller.isPurchasing.value;
-              final status = controller.purchaseStatus.value;
-              String label = 'Proceed to Buy Full Property';
-              if (status == 'creating_order')
-                label = 'Creating direct order...';
-              if (status == 'awaiting_payment') label = 'Opening payment...';
-              if (status == 'verifying') label = 'Verifying payment...';
-              return _GoldButton(
-                label: purchasing ? label : 'Proceed to Buy Full Property',
-                icon: Icons.verified_user_rounded,
-                loading: purchasing,
-                onPressed: purchasing
-                    ? null
-                    : () {
-                        if (!agreedTerms.value) {
-                          Get.snackbar(
-                            'Required',
-                            'Please agree to the Direct Buy & Title Transfer Terms',
-                            backgroundColor: AppColors.error,
-                            colorText: Colors.white,
-                          );
-                          return;
-                        }
-                        Get.back();
-                        controller.initiateDirectBuy();
-                      },
-              );
-            }),
-            const SizedBox(height: 8),
-            Center(
-              child: Text(
-                'Secured by Razorpay · 100% Title Guarantee',
-                style: TextStyle(
-                  color: dark ? DarkColors.textHint : AppColors.textHint,
-                  fontSize: 11,
-                ),
+
+            // Buttons
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 52,
+                      child: TextButton(
+                        onPressed: _submitting ? null : () => Navigator.of(context).pop(),
+                        style: TextButton.styleFrom(
+                          backgroundColor: dark ? const Color(0xFF1F2937) : const Color(0xFFF3F4F6),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            side: BorderSide(color: border),
+                          ),
+                        ),
+                        child: Text('Cancel',
+                            style: TextStyle(color: textS, fontSize: 16, fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: SizedBox(
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: _canConfirm ? _submit : null,
+                        style: ElevatedButton.styleFrom(
+                          elevation: 0,
+                          backgroundColor: dark ? Colors.white : const Color(0xFF111111),
+                          foregroundColor: dark ? Colors.black : Colors.white,
+                          disabledBackgroundColor: dark ? const Color(0xFF374151) : const Color(0xFFA3A3A3),
+                          disabledForegroundColor: dark ? const Color(0xFF6B7280) : const Color(0xFFD4D4D4),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        child: _submitting
+                            ? SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: dark ? Colors.black : Colors.white),
+                              )
+                            : const Text('Confirm', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
         ),
       ),
-    ),
-    isScrollControlled: true,
-  );
+    );
+  }
+
+  Widget _advisorFallback(bool dark) => Container(
+        color: dark ? const Color(0xFF1E293B) : const Color(0xFFEEF2FF),
+        child: Icon(Icons.support_agent_rounded,
+            size: 38, color: dark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5)),
+      );
 }
 
 // ─── Gold Press Button ────────────────────────────────────────────────────────
@@ -4581,9 +4787,9 @@ class _FinancialHighlightsGrid extends StatelessWidget {
               child: _MetricCard(
                 icon: Icons.show_chart_rounded,
                 iconColor: AppColors.accent,
-                title: 'Target Growth',
-                value: '${property.expectedAppreciation}% p.a.',
-                subtitle: 'Capital Growth',
+                title: (property.targetXirr ?? 0) > 0 ? 'Target XIRR' : 'Target Growth',
+                value: (property.targetXirr ?? 0) > 0 ? '${property.targetXirr}%' : '${property.expectedAppreciation}% p.a.',
+                subtitle: (property.targetXirr ?? 0) > 0 ? 'Annualized Return' : 'Capital Growth',
                 dark: dark,
                 cardBg: cardBg,
                 borderColor: borderColor,
@@ -5196,14 +5402,14 @@ class _InstitutionalTrustCard extends StatelessWidget {
                 Divider(color: borderColor.withOpacity(0.6), height: 1),
                 const SizedBox(height: 16),
 
-          // Row 1: ICICI escrow account (Screenshot 1 & 2)
+          // Row 1: ICICI / Dynamic escrow account
           _ProtectionInteractiveRow(
             icon: Icons.account_balance_rounded,
             iconBg: const Color(0xFFF97316).withOpacity(dark ? 0.2 : 0.1),
             iconColor: const Color(0xFFF97316),
-            title: 'ICICI escrow account',
+            title: '${property.spvEscrowBank.isNotEmpty ? property.spvEscrowBank : "ICICI Bank"} escrow account',
             subtitle:
-                'Funds are routed through an ICICI Bank escrow account with no direct access by platform',
+                'Funds are routed through an ${property.spvEscrowBank.isNotEmpty ? property.spvEscrowBank : "ICICI Bank"} escrow account with no direct access by platform',
             badgeText: (property.spvEscrowCertificateUrl != null && property.spvEscrowCertificateUrl!.isNotEmpty)
                 ? 'PDF ATTACHED'
                 : null,
@@ -5217,9 +5423,9 @@ class _InstitutionalTrustCard extends StatelessWidget {
             icon: Icons.shield_rounded,
             iconBg: const Color(0xFF3B82F6).withOpacity(dark ? 0.2 : 0.1),
             iconColor: const Color(0xFF3B82F6),
-            title: 'Universal Trustee',
+            title: property.trusteeShortName,
             subtitle:
-                'Universal Trusteeship Services Limited acts as an independent SEBI-registered trustee safeguarding investor interests',
+                '${property.spvTrusteeName} acts as an independent SEBI-registered trustee safeguarding investor interests',
             badgeText: (property.spvTrusteeCertificateUrl != null && property.spvTrusteeCertificateUrl!.isNotEmpty)
                 ? 'PDF ATTACHED'
                 : null,
@@ -5380,6 +5586,7 @@ void _showIciciEscrowSheet(
   final borderC = dark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
   final hasPdf = property.spvEscrowCertificateUrl != null &&
       property.spvEscrowCertificateUrl!.trim().isNotEmpty;
+  final escrowBank = property.spvEscrowBank.isNotEmpty ? property.spvEscrowBank : 'ICICI Bank';
 
   showModalBottomSheet(
     context: context,
@@ -5431,7 +5638,7 @@ void _showIciciEscrowSheet(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'ICICI escrow account',
+                          '$escrowBank escrow account',
                           style: TextStyle(
                             color: textP,
                             fontSize: 16,
@@ -5521,7 +5728,7 @@ void _showIciciEscrowSheet(
                           if (hasPdf) ...[
                             const SizedBox(height: 8),
                             Text(
-                              'Official ICICI Bank escrow account holding document verified and digitally signed.',
+                              'Official $escrowBank escrow account holding document verified and digitally signed.',
                               style: TextStyle(color: textS, fontSize: 11, height: 1.35),
                             ),
                             const SizedBox(height: 12),
@@ -5539,7 +5746,7 @@ void _showIciciEscrowSheet(
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                     ),
                                     onPressed: () => _previewPdfDocument(property.spvEscrowCertificateUrl,
-                                      'ICICI Bank Escrow Certificate',
+                                      '$escrowBank Escrow Certificate',
                                     ),
                                   ),
                                 ),
@@ -5556,7 +5763,7 @@ void _showIciciEscrowSheet(
                                     ),
                                     onPressed: () => _downloadPdfDocument(
                                       property.spvEscrowCertificateUrl,
-                                      'ICICI Bank Escrow Certificate',
+                                      '$escrowBank Escrow Certificate',
                                     ),
                                   ),
                                 ),
@@ -5599,9 +5806,9 @@ void _showIciciEscrowSheet(
                                       color: const Color(0xFFF97316),
                                       borderRadius: BorderRadius.circular(6),
                                     ),
-                                    child: const Text(
-                                      'ICICI Bank',
-                                      style: TextStyle(
+                                    child: Text(
+                                      escrowBank,
+                                      style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 13,
                                         fontWeight: FontWeight.w900,
@@ -5611,7 +5818,7 @@ void _showIciciEscrowSheet(
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    'Escrow Division',
+                                    property.escrowDivision,
                                     style: TextStyle(
                                       color: textS,
                                       fontSize: 11,
@@ -5663,7 +5870,7 @@ void _showIciciEscrowSheet(
 
                           _CertDetailRow(
                             label: 'Account Name',
-                            value: property.spvName,
+                            value: property.escrowAccountName,
                             textP: textP,
                             textS: textS,
                           ),
@@ -5676,7 +5883,7 @@ void _showIciciEscrowSheet(
                           ),
                           _CertDetailRow(
                             label: 'Account Type',
-                            value: 'Current / Escrow Account',
+                            value: property.escrowAccountType,
                             textP: textP,
                             textS: textS,
                           ),
@@ -5713,7 +5920,7 @@ void _showIciciEscrowSheet(
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    'Certified: All incoming investor capital is held in this segregated escrow account under Universal Trustee instructions.',
+                                    property.escrowNote,
                                     style: TextStyle(
                                       color: textS,
                                       fontSize: 10.5,
@@ -5738,21 +5945,8 @@ void _showIciciEscrowSheet(
                       ),
                     ),
                     const SizedBox(height: 10),
-                    _EscrowBullet(
-                      text:
-                          'Zero Platform Touch: Vikaone does not have unilateral withdrawal access to your investment funds.',
-                      dark: dark,
-                    ),
-                    _EscrowBullet(
-                      text:
-                          'Dual Authorization: Fund disbursement to the seller requires approval from Universal Trusteeship Services.',
-                      dark: dark,
-                    ),
-                    _EscrowBullet(
-                      text:
-                          '100% Refund Guarantee: If the funding milestone is not achieved, capital is returned directly to the investor bank account.',
-                      dark: dark,
-                    ),
+                    for (final s in property.escrowSafeguards)
+                      _EscrowBullet(text: s, dark: dark),
                   ],
                 ),
               ),
@@ -5786,7 +5980,7 @@ void _showIciciEscrowSheet(
                         ),
                         onPressed: () {
                           _previewPdfDocument(property.spvEscrowCertificateUrl,
-                            'ICICI Bank Escrow Certificate',
+                            '$escrowBank Escrow Certificate',
                           );
                         },
                       ),
@@ -5816,7 +6010,7 @@ void _showIciciEscrowSheet(
                         onPressed: () {
                           _downloadPdfDocument(
                             property.spvEscrowCertificateUrl,
-                            'ICICI Bank Escrow Certificate',
+                            '$escrowBank Escrow Certificate',
                           );
                         },
                       ),
@@ -5893,7 +6087,7 @@ void _showUniversalTrusteeSheet(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Universal Trustee',
+                          property.trusteeShortName,
                           style: TextStyle(
                             color: textP,
                             fontSize: 16,
@@ -5901,7 +6095,7 @@ void _showUniversalTrusteeSheet(
                           ),
                         ),
                         Text(
-                          'SEBI Registered Custodian & Trustee',
+                          property.trusteeTagline,
                           style: TextStyle(color: textS, fontSize: 11),
                         ),
                       ],
@@ -5982,7 +6176,7 @@ void _showUniversalTrusteeSheet(
                           if (hasPdf) ...[
                             const SizedBox(height: 8),
                             Text(
-                              'Official appointment deed appointing Universal Trusteeship Services Limited as custodian.',
+                              'Official appointment deed appointing ${property.spvTrusteeName} as custodian.',
                               style: TextStyle(color: textS, fontSize: 11, height: 1.35),
                             ),
                             const SizedBox(height: 12),
@@ -6052,9 +6246,9 @@ void _showUniversalTrusteeSheet(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(
-                                      'UNIVERSAL TRUSTEESHIP',
-                                      style: TextStyle(
+                                    Text(
+                                      property.trusteeShortName.toUpperCase(),
+                                      style: const TextStyle(
                                         color: Color(0xFF3B82F6),
                                         fontSize: 13.5,
                                         fontWeight: FontWeight.w900,
@@ -6062,7 +6256,7 @@ void _showUniversalTrusteeSheet(
                                       ),
                                     ),
                                     Text(
-                                      'SEBI Regn. No. IND000000570',
+                                      property.trusteeRegNo,
                                       style: TextStyle(
                                         color: textS,
                                         fontSize: 10,
@@ -6104,7 +6298,7 @@ void _showUniversalTrusteeSheet(
                           ),
                           const SizedBox(height: 10),
                           Text(
-                            'This is to certify that Universal Trusteeship Services Limited has been formally appointed as the Independent Trustee for ${property.spvName}.',
+                            property.trusteeCertificateText,
                             style: TextStyle(
                               color: textS,
                               fontSize: 11.5,
@@ -6135,7 +6329,7 @@ void _showUniversalTrusteeSheet(
                           ),
                           _CertDetailRow(
                             label: 'Beneficiaries',
-                            value: 'All registered unit holders of ${property.title}',
+                            value: property.trusteeBeneficiaries,
                             textP: textP,
                             textS: textS,
                           ),
@@ -6153,21 +6347,8 @@ void _showUniversalTrusteeSheet(
                       ),
                     ),
                     const SizedBox(height: 10),
-                    _EscrowBullet(
-                      text:
-                          'Title Custody: Holds legal mortgage/charge on property deed preventing unauthorized resale or debt.',
-                      dark: dark,
-                    ),
-                    _EscrowBullet(
-                      text:
-                          'Rental Supervision: Audits monthly tenant lease collections and approves automated dividend payouts.',
-                      dark: dark,
-                    ),
-                    _EscrowBullet(
-                      text:
-                          'Exit Enforcement: Oversees secondary trading and institutional liquidity windows to protect minority unit holders.',
-                      dark: dark,
-                    ),
+                    for (final r in property.trusteeRoles)
+                      _EscrowBullet(text: r, dark: dark),
                   ],
                 ),
               ),
@@ -6638,7 +6819,7 @@ class _PropertyStickyBottomBar extends StatelessWidget {
     final barBg = dark ? const Color(0xFF09101C) : Colors.white;
     final textS = dark ? DarkColors.textSecondary : AppColors.textSecondary;
 
-        return Material(
+    return Material(
       elevation: 20,
       color: barBg,
       child: Column(
@@ -6823,7 +7004,7 @@ class _PropertyStickyBottomBar extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 GestureDetector(
-                  onTap: () => showDirectBuySheet(
+                  onTap: () => showScheduleCallSheet(
                     context: context,
                     controller: controller,
                     property: property,
@@ -6849,13 +7030,13 @@ class _PropertyStickyBottomBar extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          Icons.business_rounded,
+                          Icons.phone_in_talk_rounded,
                           color: Colors.white,
                           size: 14,
                         ),
                         SizedBox(width: 5),
                         Text(
-                          'Buyout',
+                          'Schedule Call',
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w800,
@@ -6868,7 +7049,7 @@ class _PropertyStickyBottomBar extends StatelessWidget {
                 ),
               ] else if (property.isDirectBuyOnly) ...[
                 GestureDetector(
-                  onTap: () => showDirectBuySheet(
+                  onTap: () => showScheduleCallSheet(
                     context: context,
                     controller: controller,
                     property: property,
@@ -6894,13 +7075,13 @@ class _PropertyStickyBottomBar extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          Icons.business_rounded,
+                          Icons.calendar_month_rounded,
                           color: Colors.white,
                           size: 16,
                         ),
                         SizedBox(width: 6),
                         Text(
-                          'Buy Full Property (100%)',
+                          'Schedule a Call (100%)',
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w800,
@@ -6945,13 +7126,13 @@ class _PropertyStickyBottomBar extends StatelessWidget {
                           color: Colors.white,
                           size: 16,
                         ),
-                        SizedBox(width: 6),
+                        SizedBox(width: 7),
                         Text(
                           'Buy Bricks',
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w800,
-                            fontSize: 14,
+                            fontSize: 14.5,
                           ),
                         ),
                       ],
@@ -7619,7 +7800,14 @@ class _FullScreenVideoPageState extends State<_FullScreenVideoPage> {
 
 class _AdvisorCard extends StatelessWidget {
   final bool dark;
-  const _AdvisorCard({required this.dark});
+  final PropertyModel property;
+  final PropertyDetailController controller;
+
+  const _AdvisorCard({
+    required this.dark,
+    required this.property,
+    required this.controller,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -7627,6 +7815,14 @@ class _AdvisorCard extends StatelessWidget {
     final textP = dark ? const Color(0xFFEDF0FF) : AppColors.textPrimary;
     final textS = dark ? const Color(0xFF8A95B0) : AppColors.textSecondary;
     final borderC = dark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0);
+
+    final advisorTitle = (property.scheduleAdvisorTitle != null && property.scheduleAdvisorTitle!.trim().isNotEmpty)
+        ? property.scheduleAdvisorTitle!.trim()
+        : 'Talk to your Advisor';
+    final advisorSubtitle = (property.scheduleAdvisorSubtitle != null && property.scheduleAdvisorSubtitle!.trim().isNotEmpty)
+        ? property.scheduleAdvisorSubtitle!.trim()
+        : "Hello, I'm here to answer all your questions about real estate investing.";
+    final advisorImg = (property.scheduleAdvisorImage ?? '').trim();
 
     return Container(
       decoration: BoxDecoration(
@@ -7653,7 +7849,7 @@ class _AdvisorCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Talk to your Advisor',
+                      advisorTitle,
                       style: TextStyle(
                         color: textP,
                         fontSize: 16.5,
@@ -7662,7 +7858,7 @@ class _AdvisorCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Hello Harsh, I\'m here to answer all your questions about real estate investing.',
+                      advisorSubtitle,
                       style: TextStyle(
                         color: textS,
                         fontSize: 12.5,
@@ -7691,13 +7887,21 @@ class _AdvisorCard extends StatelessWidget {
                       ],
                     ),
                     child: ClipOval(
-                      child: Image.network(
-                        'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=200&q=80',
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => const Center(
-                          child: Icon(Icons.person, color: Color(0xFF64748B), size: 36),
-                        ),
-                      ),
+                      child: advisorImg.isNotEmpty
+                          ? Image.network(
+                              advisorImg,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => const Center(
+                                child: Icon(Icons.person, color: Color(0xFF64748B), size: 36),
+                              ),
+                            )
+                          : Image.network(
+                              'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=200&q=80',
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => const Center(
+                                child: Icon(Icons.person, color: Color(0xFF64748B), size: 36),
+                              ),
+                            ),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -7708,7 +7912,7 @@ class _AdvisorCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
-                      '• Nikita Sharma',
+                      '• Expert Advisor',
                       style: TextStyle(
                         color: textP,
                         fontSize: 10,
@@ -7721,83 +7925,43 @@ class _AdvisorCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: () {
-                    Get.snackbar(
-                      'Advisor Call Scheduled',
-                      'Nikita Sharma will reach out to you within 30 minutes.',
-                      backgroundColor: const Color(0xFF10B981),
-                      colorText: Colors.white,
-                      snackPosition: SnackPosition.BOTTOM,
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 11),
-                    decoration: BoxDecoration(
-                      color: dark ? const Color(0xFF020617) : const Color(0xFF0F172A),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.phone_in_talk_rounded, color: Colors.white, size: 15),
-                        SizedBox(width: 6),
-                        Text(
-                          'Schedule a call',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
+          GestureDetector(
+            onTap: () => showScheduleCallSheet(
+              context: context,
+              controller: controller,
+              property: property,
+              dark: dark,
+            ),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 13),
+              decoration: BoxDecoration(
+                color: dark ? const Color(0xFF020617) : const Color(0xFF0F172A),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(dark ? 0.35 : 0.08),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.phone_in_talk_rounded, color: Colors.white, size: 16),
+                  SizedBox(width: 8),
+                  Text(
+                    'Schedule a call',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                ),
+                ],
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: GestureDetector(
-                  onTap: () {
-                    Get.snackbar(
-                      'Opening WhatsApp Chat',
-                      'Connecting to Nikita Sharma on WhatsApp...',
-                      backgroundColor: const Color(0xFF25D366),
-                      colorText: Colors.white,
-                      snackPosition: SnackPosition.BOTTOM,
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 11),
-                    decoration: BoxDecoration(
-                      color: Colors.transparent,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: dark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.chat_bubble_outline_rounded, color: Color(0xFF10B981), size: 15),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Chat now',
-                          style: TextStyle(
-                            color: textP,
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ],
       ),
@@ -8258,20 +8422,32 @@ class _ProjectedReturnsReportModalState extends State<_ProjectedReturnsReportMod
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  """Executive summary. ${property.title} enters ${property.location.city ?? "Kharghar"} with a prime residential estate on Plot 17–19, Sector 5A, the best single price marker for ${property.location.city ?? "Kharghar"} land to date. Homes run 725–775 sq ft carpet (2 BHK) and ~1,100–1,200 (3 BHK) at approximately ₹40,000/sq ft carpet.""",
-                  style: TextStyle(color: textP, fontSize: 12, height: 1.45, fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  """The node's own record is the most useful anchor available. ${property.location.city ?? "Kharghar"} has compounded at roughly 10.5% a year since 2015; its strongest sectors have realised 7% (Sector 6) and 10% (Sector 23) over five years. Sector 5A currently trades at roughly ₹35,000–38,000/sq ft. The mature Navi Mumbai nodes (Vashi 9%, Nerul 6%, Panvel 4.4%, New Panvel 5% over ten years) set the floor band at 6–9% gross.""",
-                  style: TextStyle(color: textS, fontSize: 11.5, height: 1.4),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  """Our base case of 12.5% a year is built from ${property.location.city ?? "Kharghar"}'s own record rather than the wider mature-node band: the node's realised 10.5% carried forward, plus a ~2 point in-hold catalyst premium sized to Mumbai's measured coastal-road precedent. It requires the corridor to keep doing what it has been doing, and it requires CIDCO to deliver the road stack: the Turbhe link tunnel by 2028, the coastal road by 2029 close to target.""",
-                  style: TextStyle(color: textS, fontSize: 11.5, height: 1.4),
-                ),
+                if (property.growthProjections != null && property.growthProjections!.trim().isNotEmpty) ...[
+                  Text(
+                    'Growth Projections & Investment Thesis',
+                    style: TextStyle(color: textP, fontSize: 13, height: 1.45, fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    property.growthProjections!,
+                    style: TextStyle(color: textS, fontSize: 12, height: 1.5),
+                  ),
+                ] else ...[
+                  Text(
+                    """Executive summary. ${property.title} enters ${property.location.city ?? "Kharghar"} with a prime residential estate on Plot 17–19, Sector 5A, the best single price marker for ${property.location.city ?? "Kharghar"} land to date. Homes run 725–775 sq ft carpet (2 BHK) and ~1,100–1,200 (3 BHK) at approximately ₹40,000/sq ft carpet.""",
+                    style: TextStyle(color: textP, fontSize: 12, height: 1.45, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    """The node's own record is the most useful anchor available. ${property.location.city ?? "Kharghar"} has compounded at roughly 10.5% a year since 2015; its strongest sectors have realised 7% (Sector 6) and 10% (Sector 23) over five years. Sector 5A currently trades at roughly ₹35,000–38,000/sq ft. The mature Navi Mumbai nodes (Vashi 9%, Nerul 6%, Panvel 4.4%, New Panvel 5% over ten years) set the floor band at 6–9% gross.""",
+                    style: TextStyle(color: textS, fontSize: 11.5, height: 1.4),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    """Our base case of 12.5% a year is built from ${property.location.city ?? "Kharghar"}'s own record rather than the wider mature-node band: the node's realised 10.5% carried forward, plus a ~2 point in-hold catalyst premium sized to Mumbai's measured coastal-road precedent. It requires the corridor to keep doing what it has been doing, and it requires CIDCO to deliver the road stack: the Turbhe link tunnel by 2028, the coastal road by 2029 close to target.""",
+                    style: TextStyle(color: textS, fontSize: 11.5, height: 1.4),
+                  ),
+                ],
               ],
             ),
           ),
@@ -8668,8 +8844,8 @@ class _ProjectedReturnsReportModalState extends State<_ProjectedReturnsReportMod
                 _detailRow('Independent Valuer', 'CBRE & JLL Approved Valuation Team', textP, textS),
                 _detailRow('Title Clearance', 'Clear & Marketable (100% Encumbrance Free)', textP, textS),
                 _detailRow('RERA Status', 'Verified Active RERA Registration', textP, textS),
-                _detailRow('SPV Entity', 'VIKAONE REALTY SERIES005 LLP', textP, textS),
-                _detailRow('Custodian / Escrow', 'Universal Trusteeship Services & ICICI Escrow', textP, textS),
+                _detailRow('SPV Entity', property.spvName, textP, textS),
+                _detailRow('Custodian / Escrow', '${property.spvTrusteeName} & ${property.spvEscrowBank.isNotEmpty ? property.spvEscrowBank : "ICICI"} Escrow', textP, textS),
                 _detailRow('MCA Quarterly Filing', 'Guaranteed Q1–Q4 Form 3 filings', textP, textS),
               ],
             ),

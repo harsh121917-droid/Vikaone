@@ -1679,9 +1679,9 @@ class _PartnershipTrustStripState extends State<_PartnershipTrustStrip> {
     ),
     _PartnerBadge(
       name: 'ICICI Bank',
-      imagePath: 'assets/images/partners/icici_mutual.jpg',
       desc: 'Trustee Escrow Services',
-      isAsset: true,
+      icon: Icons.account_balance_rounded,
+      iconColor: const Color(0xFFF97316),
     ),
     _PartnerBadge(
       name: 'DigiLocker',

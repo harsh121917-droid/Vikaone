@@ -21,6 +21,8 @@ class PropertyModel {
   final String? youtubeUrl;
   final String? valuationReportUrl;
   final String? valuationReportTitle;
+  final double? targetXirr;
+  final String? growthProjections;
   final List<PropertyDocument> documents;
   final String spvName;
   final String spvEscrowBank;
@@ -32,6 +34,24 @@ class PropertyModel {
   final String spvTrusteeAddress;
   final String? spvTrusteeCertificateUrl;
   final String? spvLiquidityPolicy;
+
+  // Admin-customisable text (null/blank -> default getters below)
+  final String? spvEscrowAccountName;
+  final String? spvEscrowAccountType;
+  final String? spvEscrowDivision;
+  final String? spvEscrowNote;
+  final String? spvEscrowSafeguards;
+  final String? spvTrusteeShortName;
+  final String? spvTrusteeTagline;
+  final String? spvTrusteeRegNo;
+  final String? spvTrusteeBeneficiaries;
+  final String? spvTrusteeCertificateText;
+  final String? spvTrusteeRoles;
+  final String? scheduleAdvisorTitle;
+  final String? scheduleAdvisorSubtitle;
+  final String? scheduleAdvisorImage;
+  final String? scheduleTimeSlots;
+  final int scheduleDaysAhead;
 
   PropertyModel({
     required this.id,
@@ -56,6 +76,8 @@ class PropertyModel {
     this.youtubeUrl,
     this.valuationReportUrl,
     this.valuationReportTitle,
+    this.targetXirr,
+    this.growthProjections,
     this.documents = const [],
     this.spvName = 'VIKAONE REALTY SERIES 001 LLP',
     this.spvEscrowBank = 'ICICI Bank',
@@ -67,9 +89,70 @@ class PropertyModel {
     this.spvTrusteeAddress = 'Premises No. 74, 7th Floor, Sakhar Bhavan, Nariman Point, Mumbai 400 021',
     this.spvTrusteeCertificateUrl,
     this.spvLiquidityPolicy,
+    this.spvEscrowAccountName,
+    this.spvEscrowAccountType,
+    this.spvEscrowDivision,
+    this.spvEscrowNote,
+    this.spvEscrowSafeguards,
+    this.spvTrusteeShortName,
+    this.spvTrusteeTagline,
+    this.spvTrusteeRegNo,
+    this.spvTrusteeBeneficiaries,
+    this.spvTrusteeCertificateText,
+    this.spvTrusteeRoles,
+    this.scheduleAdvisorTitle,
+    this.scheduleAdvisorSubtitle,
+    this.scheduleAdvisorImage,
+    this.scheduleTimeSlots,
+    this.scheduleDaysAhead = 0,
   });
 
+  static String _or(String? v, String def) =>
+      (v != null && v.trim().isNotEmpty) ? v.trim() : def;
+  static List<String> _lines(String? v, List<String> def) {
+    if (v == null || v.trim().isEmpty) return def;
+    final l = v.split(RegExp(r'[\r\n]+')).map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    return l.isEmpty ? def : l;
+  }
+
+  // ── Escrow display values ──
+  String get escrowAccountName => _or(spvEscrowAccountName, spvName);
+  String get escrowAccountType => _or(spvEscrowAccountType, 'Current / Escrow Account');
+  String get escrowDivision => _or(spvEscrowDivision, 'Escrow Division');
+  String get escrowNote => _or(spvEscrowNote,
+      'Certified: All incoming investor capital is held in this segregated escrow account under $trusteeShortName instructions.');
+  List<String> get escrowSafeguards => _lines(spvEscrowSafeguards, [
+        'Zero Platform Touch: Vikaone does not have unilateral withdrawal access to your investment funds.',
+        'Dual Authorization: Fund disbursement to the seller requires approval from $spvTrusteeName.',
+        '100% Refund Guarantee: If the funding milestone is not achieved, capital is returned directly to the investor bank account.',
+      ]);
+
+  // ── Trustee display values ──
+  String get trusteeShortName => _or(spvTrusteeShortName, 'Universal Trustee');
+  String get trusteeTagline => _or(spvTrusteeTagline, 'SEBI Registered Custodian & Trustee');
+  String get trusteeRegNo => _or(spvTrusteeRegNo, 'SEBI Regn. No. IND000000570');
+  String get trusteeBeneficiaries => _or(spvTrusteeBeneficiaries, 'All registered unit holders of $title');
+  String get trusteeCertificateText => _or(spvTrusteeCertificateText,
+      'This is to certify that $spvTrusteeName has been formally appointed as the Independent Trustee for $spvName.');
+  List<String> get trusteeRoles => _lines(spvTrusteeRoles, const [
+        'Title Custody: Holds legal mortgage/charge on property deed preventing unauthorized resale or debt.',
+        'Rental Supervision: Audits monthly tenant lease collections and approves automated dividend payouts.',
+        'Exit Enforcement: Oversees secondary trading and institutional liquidity windows to protect minority unit holders.',
+      ]);
+
+  // ── Schedule-a-call display values ──
+  String get scheduleTitle => _or(scheduleAdvisorTitle, 'Call with advisor');
+  String get scheduleSubtitle => _or(scheduleAdvisorSubtitle, 'Know how you can maximise your earnings with VikaDrx.');
+  int get scheduleDays => (scheduleDaysAhead > 0 && scheduleDaysAhead <= 30) ? scheduleDaysAhead : 7;
+  List<String> get scheduleSlots {
+    const def = ['10:00 AM', '11:00 AM', '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM', '6:00 PM'];
+    if (scheduleTimeSlots == null || scheduleTimeSlots!.trim().isEmpty) return def;
+    final l = scheduleTimeSlots!.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    return l.isEmpty ? def : l;
+  }
+
   String? get coverImage => images.isNotEmpty ? images.first.url : null;
+  double get effectiveXirr => (targetXirr != null && targetXirr! > 0) ? targetXirr! : (expectedRentalYield + expectedAppreciation);
   int get availableBricks => (totalBricks ?? 0) - (soldBricks ?? 0);
   double get soldPercent => totalBricks != null && totalBricks! > 0
       ? (soldBricks ?? 0) / totalBricks! * 100
@@ -142,6 +225,8 @@ class PropertyModel {
       soldBricks: (j['soldBricks'] as num?)?.toInt(),
       expectedAppreciation: (j['expectedAppreciation'] as num? ?? 8).toDouble(),
       expectedRentalYield: (j['expectedRentalYield'] as num? ?? 3).toDouble(),
+      targetXirr: (j['targetXirr'] as num?)?.toDouble(),
+      growthProjections: j['growthProjections']?.toString(),
       location: PropertyLocation.fromJson(j['location'] ?? {}),
       price: PropertyPrice.fromJson(j['price'] ?? {}),
       images: (j['images'] as List? ?? [])
@@ -180,6 +265,22 @@ class PropertyModel {
           : 'Premises No. 74, 7th Floor, Sakhar Bhavan, Nariman Point, Mumbai 400 021',
       spvTrusteeCertificateUrl: j['spvTrusteeCertificateUrl']?.toString(),
       spvLiquidityPolicy: j['spvLiquidityPolicy']?.toString(),
+      spvEscrowAccountName: j['spvEscrowAccountName']?.toString(),
+      spvEscrowAccountType: j['spvEscrowAccountType']?.toString(),
+      spvEscrowDivision: j['spvEscrowDivision']?.toString(),
+      spvEscrowNote: j['spvEscrowNote']?.toString(),
+      spvEscrowSafeguards: j['spvEscrowSafeguards']?.toString(),
+      spvTrusteeShortName: j['spvTrusteeShortName']?.toString(),
+      spvTrusteeTagline: j['spvTrusteeTagline']?.toString(),
+      spvTrusteeRegNo: j['spvTrusteeRegNo']?.toString(),
+      spvTrusteeBeneficiaries: j['spvTrusteeBeneficiaries']?.toString(),
+      spvTrusteeCertificateText: j['spvTrusteeCertificateText']?.toString(),
+      spvTrusteeRoles: j['spvTrusteeRoles']?.toString(),
+      scheduleAdvisorTitle: j['scheduleAdvisorTitle']?.toString(),
+      scheduleAdvisorSubtitle: j['scheduleAdvisorSubtitle']?.toString(),
+      scheduleAdvisorImage: j['scheduleAdvisorImage']?.toString(),
+      scheduleTimeSlots: j['scheduleTimeSlots']?.toString(),
+      scheduleDaysAhead: (j['scheduleDaysAhead'] as num?)?.toInt() ?? 0,
     );
   }
 }
