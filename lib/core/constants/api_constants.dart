@@ -11,6 +11,7 @@ class ApiConstants {
   static const String kycSubmit = '/kyc/submit';
   static const String kycMe = '/kyc/me';
   static const String savings = '/savings';
+  static const String business = '/business';
   static const String policies = '/policies';
   static const String enquiries = '/enquiries';
 }

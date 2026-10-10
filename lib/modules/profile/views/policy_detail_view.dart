@@ -60,7 +60,7 @@ class _PolicyDetailViewState extends State<PolicyDetailView> {
           title: 'Framework Investor Agreement & LLP Terms',
           version: 'v2.4 (2026 Edition)',
           content: '''1. PREAMBLE & SPV PARTNERSHIP STRUCTURE
-1.1 This Framework Investor Agreement governs fractional co-ownership of real estate assets curated by Vikaone.
+1.1 This Framework Investor Agreement governs fractional co-ownership of real estate assets curated by VikaDrx.
 1.2 Each property is held in an SPV registered as an LLP under the Ministry of Corporate Affairs (MCA).
 1.3 Investors become legal partners in the SPV proportionate to capital contributed.
 
@@ -86,7 +86,7 @@ class _PolicyDetailViewState extends State<PolicyDetailView> {
           title: 'Privacy & Data Protection Policy',
           version: 'v2.1',
           content: '''1. COMMITMENT TO DATA PROTECTION
-Vikaone complies strictly with the Digital Personal Data Protection Act, 2023 (DPDP) and IT Act.
+VikaDrx complies strictly with the Digital Personal Data Protection Act, 2023 (DPDP) and IT Act.
 
 2. DATA COLLECTED
 2.1 KYC Identifiers: PAN, Aadhaar, Passport, residential address, bank accounts for dividend credit.
@@ -106,7 +106,7 @@ Vikaone complies strictly with the Digital Personal Data Protection Act, 2023 (D
           title: 'Terms of Service & Platform Governance',
           version: 'v3.0',
           content: '''1. ACCEPTANCE
-By using the Vikaone platform you agree to these Terms of Service.
+By using the VikaDrx platform you agree to these Terms of Service.
 
 2. INVESTOR ELIGIBILITY
 2.1 Minimum age: 18 years. Indian residents and NRIs (FEMA compliant) permitted.
@@ -277,7 +277,7 @@ Following the 12-month lock-in period, fractional units may be transferred to ve
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Governing fractional SPV investments · Vikaone Realty',
+                            'Governing fractional SPV investments · VikaDrx Realty',
                             style: TextStyle(color: textS, fontSize: 12),
                           ),
                         ],
@@ -387,7 +387,7 @@ Following the 12-month lock-in period, fractional units may be transferred to ve
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              'Legal notice: All transactions and agreements on Vikaone are subject to jurisdiction in Mumbai, India.',
+                              'Legal notice: All transactions and agreements on VikaDrx are subject to jurisdiction in Mumbai, India.',
                               style: TextStyle(color: textS, fontSize: 11, height: 1.35),
                             ),
                           ),

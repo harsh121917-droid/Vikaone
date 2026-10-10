@@ -1,3 +1,5 @@
+import '../modules/business/bindings/business_binding.dart';
+import '../modules/business/views/business_view.dart';
 import '../modules/properties/bindings/properties_binding.dart';
 import '../modules/properties/views/properties_view.dart';
 import '../modules/investments/bindings/investments_binding.dart';
@@ -39,6 +41,7 @@ abstract class AppRoutes {
   static const properties     = '/properties';
   static const propertyDetail = '/properties/detail';
   static const investments    = '/investments';
+  static const business       = '/business';
   static const profile        = '/profile';
   static const kyc            = '/kyc';
   static const myPlans        = '/savings/my-plans';
@@ -66,6 +69,7 @@ final appPages = [
   GetPage(name: AppRoutes.home,           page: () => const MainShellView(),          binding: HomeBinding()),
   GetPage(name: AppRoutes.properties,     page: () => const PropertiesView(),          binding: PropertiesBinding()),
   GetPage(name: AppRoutes.investments,    page: () => const InvestmentsView(),         binding: InvestmentsBinding()),
+  GetPage(name: AppRoutes.business,       page: () => const BusinessView(),            binding: BusinessBinding()),
   GetPage(name: AppRoutes.propertyDetail, page: () => const PropertyDetailView(),     binding: PropertyDetailBinding()),
   GetPage(name: AppRoutes.kyc,            page: () => const KycView(),               binding: KycBinding()),
   GetPage(name: AppRoutes.myPlans,        page: () => const MyPlansView()),

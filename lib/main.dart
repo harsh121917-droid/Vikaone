@@ -8,7 +8,6 @@
 // import 'modules/auth/controllers/auth_controller.dart';
 // import 'modules/auth/bindings/auth_binding.dart';
 // import 'routes/app_routes.dart';
-import 'package:get/get.dart';
 
 import 'data/repositories/wallet_repository.dart';
 

@@ -21,6 +21,11 @@ class PropertyModel {
   final String? youtubeUrl;
   final String? valuationReportUrl;
   final String? valuationReportTitle;
+  final String? valuationReportDate;
+  final String? valuationAuthority;
+  final String? valuationMethodology;
+  final String? valuationSummary;
+  final String? reraNumber;
   final double? targetXirr;
   final String? growthProjections;
   final List<PropertyDocument> documents;
@@ -76,10 +81,15 @@ class PropertyModel {
     this.youtubeUrl,
     this.valuationReportUrl,
     this.valuationReportTitle,
+    this.valuationReportDate,
+    this.valuationAuthority,
+    this.valuationMethodology,
+    this.valuationSummary,
+    this.reraNumber,
     this.targetXirr,
     this.growthProjections,
     this.documents = const [],
-    this.spvName = 'VIKAONE REALTY SERIES 001 LLP',
+    this.spvName = 'VIKADRX REALTY SERIES 001 LLP',
     this.spvEscrowBank = 'ICICI Bank',
     this.spvEscrowAccountNo = '705105000036',
     this.spvEscrowIfsc = 'ICIC0007051',
@@ -122,7 +132,7 @@ class PropertyModel {
   String get escrowNote => _or(spvEscrowNote,
       'Certified: All incoming investor capital is held in this segregated escrow account under $trusteeShortName instructions.');
   List<String> get escrowSafeguards => _lines(spvEscrowSafeguards, [
-        'Zero Platform Touch: Vikaone does not have unilateral withdrawal access to your investment funds.',
+        'Zero Platform Touch: VikaDrx does not have unilateral withdrawal access to your investment funds.',
         'Dual Authorization: Fund disbursement to the seller requires approval from $spvTrusteeName.',
         '100% Refund Guarantee: If the funding milestone is not achieved, capital is returned directly to the investor bank account.',
       ]);
@@ -237,13 +247,18 @@ class PropertyModel {
       purchaseMode: j['purchaseMode'] ?? 'both',
       youtubeUrl: ytUrl,
       valuationReportUrl: j['valuationReportUrl']?.toString(),
-      valuationReportTitle: j['valuationReportTitle']?.toString() ?? 'Valuation & Audit Report',
+      valuationReportTitle: j['valuationReportTitle']?.toString() ?? 'Certified Valuation & Audit Report',
+      valuationReportDate: j['valuationReportDate']?.toString(),
+      valuationAuthority: j['valuationAuthority']?.toString(),
+      valuationMethodology: j['valuationMethodology']?.toString(),
+      valuationSummary: j['valuationSummary']?.toString(),
+      reraNumber: j['reraNumber']?.toString(),
       documents: (j['documents'] as List? ?? [])
           .map((e) => PropertyDocument.fromJson(e is Map<String, dynamic> ? e : Map<String, dynamic>.from(e as Map)))
           .toList(),
       spvName: (j['spvName'] != null && j['spvName'].toString().trim().isNotEmpty)
           ? j['spvName'].toString().trim()
-          : 'VIKAONE REALTY SERIES 001 LLP',
+          : 'VIKADRX REALTY SERIES 001 LLP',
       spvEscrowBank: (j['spvEscrowBank'] != null && j['spvEscrowBank'].toString().trim().isNotEmpty)
           ? j['spvEscrowBank'].toString().trim()
           : 'ICICI Bank',

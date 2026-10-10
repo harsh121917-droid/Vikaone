@@ -944,7 +944,7 @@ class _PropertyContentState extends State<_PropertyContent> {
             _metricDetailRow('Total Asset Bricks', '${property.totalBricks ?? 1000} Bricks', textP, textS),
             _metricDetailRow('Available Bricks', '${property.availableBricks} Bricks', textP, textS),
             _metricDetailRow('Minimum Ticket Size', '₹${(property.brickPrice ?? 10000).toLocaleString()}', textP, textS),
-            _metricDetailRow('SPV Legal Entity', 'VIKAONE REALTY SERIES005 LLP', textP, textS),
+            _metricDetailRow('SPV Legal Entity', property.spvName, textP, textS),
             const SizedBox(height: 16),
           ],
         ),
@@ -1327,7 +1327,7 @@ Widget _buildInvestmentTab(
             children: [
               _TimelineStep(
                 number: '1',
-                title: 'VIKAONE REALTY SERIES005 LLP',
+                title: property.spvName,
                 subtitle: 'holds the title of the property',
                 dark: dark,
                 isLast: false,
@@ -1342,7 +1342,7 @@ Widget _buildInvestmentTab(
               _TimelineStep(
                 number: '3',
                 title: 'Your partnership is filed in MCA',
-                subtitle: 'Vikaone does the filing on your behalf every quarter',
+                subtitle: 'VikaDrx does the filing on your behalf every quarter',
                 dark: dark,
                 isLast: true,
               ),
@@ -6495,7 +6495,7 @@ void _showBuySellAnytimeSheet(
                           ),
                         ),
                         Text(
-                          'Vikaone DRX Liquidity & Secondary Market Mechanism',
+                          'VikaDrx Liquidity & Secondary Market Mechanism',
                           style: TextStyle(color: textS, fontSize: 11),
                         ),
                       ],
@@ -6534,7 +6534,7 @@ void _showBuySellAnytimeSheet(
                       iconColor: const Color(0xFFF97316),
                       title: 'Sell Anytime',
                       desc:
-                          'List your verified fractional bricks on the Vikaone Secondary Market at current NAV valuation or fair market clearing price without lock-in penalties.',
+                          'List your verified fractional bricks on the VikaDrx Secondary Market at current NAV valuation or fair market clearing price without lock-in penalties.',
                       dark: dark,
                       cardBg: cardBg,
                       borderC: borderC,
@@ -7970,7 +7970,7 @@ class _AdvisorCard extends StatelessWidget {
 }
 
 // ══════════════════════════════════════════════════════════════════
-// Projected Returns Bar Chart (Vikaone Style - Screenshot 5)
+// Projected Returns Bar Chart (VikaDrx Style - Screenshot 5)
 // ══════════════════════════════════════════════════════════════════
 class _ProjectedReturnsBarChart extends StatelessWidget {
   final bool dark;
@@ -8109,6 +8109,17 @@ class _ProjectedReturnsReportModalState extends State<_ProjectedReturnsReportMod
     }
   }
 
+  String _formatInr(double amount) {
+    final rounded = amount.round();
+    if (rounded >= 10000000) {
+      return '₹${(amount / 10000000).toStringAsFixed(2)} Cr';
+    } else if (rounded >= 100000) {
+      return '₹${(amount / 100000).toStringAsFixed(2)} L';
+    } else {
+      return '₹$rounded';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final property = widget.property;
@@ -8128,48 +8139,54 @@ class _ProjectedReturnsReportModalState extends State<_ProjectedReturnsReportMod
       child: Column(
         children: [
           // ── Header Bar ─────────────────────────────────────────
-                    Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
             decoration: BoxDecoration(
+              color: bg,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
               border: Border(bottom: BorderSide(color: borderC)),
             ),
             child: Row(
               children: [
-                // Vikaone brand logo & Node title
+                // VikaDrx brand logo & Node title
                 Expanded(
                   child: Row(
-                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                         decoration: BoxDecoration(
                           color: const Color(0xFF10B981),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Text(
-                          'VIKAONE',
+                          'VIKADRX',
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 11,
+                            fontSize: 10.5,
                             fontWeight: FontWeight.w900,
-                            letterSpacing: 1.0,
+                            letterSpacing: 0.8,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              '${property.location.city ?? "Navi Mumbai"} node',
-                              style: TextStyle(color: textP, fontSize: 12, fontWeight: FontWeight.w700),
+                              property.valuationReportTitle ?? 'Valuation & Audit Report',
+                              style: TextStyle(
+                                color: textP,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                              ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                             Text(
-                              'Sep 2026 · Report',
+                              property.valuationReportDate != null && property.valuationReportDate!.isNotEmpty
+                                  ? '${property.valuationReportDate!} · Report'
+                                  : 'October 2026 · Report',
                               style: TextStyle(color: textS, fontSize: 10),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -8322,7 +8339,7 @@ class _ProjectedReturnsReportModalState extends State<_ProjectedReturnsReportMod
     );
   }
 
-  // ── Page 1: Projected Returns Report (Exact Image Match) ───────────
+  // ── Page 1: Projected Returns Report (Dynamic Property Binding) ───
   Widget _buildPage1Report(
     PropertyModel property,
     bool dark,
@@ -8331,6 +8348,44 @@ class _ProjectedReturnsReportModalState extends State<_ProjectedReturnsReportMod
     Color cardBg,
     Color borderC,
   ) {
+    final locationDisplay = property.location.display.isNotEmpty
+        ? property.location.display
+        : (property.location.city != null && property.location.city!.isNotEmpty
+            ? '${property.location.city!}, ${property.location.state ?? ""}'
+            : 'Prime Location');
+
+    final priceAmount = (property.price.amount ?? 0).toDouble();
+    final hasArea = property.area != null && property.area! > 0;
+    final double baseRate = hasArea
+        ? (priceAmount / property.area!)
+        : priceAmount;
+
+    final baseCagr = property.effectiveXirr > 0 ? property.effectiveXirr : 12.5;
+    final bearCagr = (baseCagr - 3.0).clamp(1.0, 50.0);
+    final bullCagr = (baseCagr + 3.0).clamp(1.0, 60.0);
+
+    String calcCell(double cagr, int years) {
+      final mult = pow(1.0 + (cagr / 100.0), years).toDouble();
+      final pct = ((mult - 1.0) * 100.0).round();
+      final projRate = baseRate * mult;
+      final valStr = hasArea
+          ? '₹${projRate.round().toString()}/sq ft'
+          : _formatInr(projRate);
+      return '+$pct% · ${mult.toStringAsFixed(2)}x\n$valStr';
+    }
+
+    final statRateValue = hasArea
+        ? '₹${baseRate.round().toString()}/sq ft'
+        : property.formattedPrice;
+    final statRateLabel = hasArea ? 'Carpet rate base' : 'Asset valuation';
+
+    final statAreaValue = hasArea
+        ? '${property.area} sq ft'
+        : ((property.totalBricks ?? 0) > 0 ? '${property.totalBricks} Bricks' : '100% Equity');
+    final statAreaLabel = hasArea ? 'RERA registered area' : 'Unit allocation';
+
+    final propTypeLabel = (property.propertyType ?? 'Real Estate').toUpperCase();
+
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.all(20),
@@ -8339,7 +8394,7 @@ class _ProjectedReturnsReportModalState extends State<_ProjectedReturnsReportMod
         children: [
           // Category tag
           Text(
-            'Summary and projection · Residential apartments, ${property.location.city ?? "Kharghar"}',
+            'Summary and projection · $propTypeLabel, $locationDisplay',
             style: TextStyle(color: textS, fontSize: 11.5, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 4),
@@ -8358,27 +8413,22 @@ class _ProjectedReturnsReportModalState extends State<_ProjectedReturnsReportMod
 
           // Subtitle (Property Title | Location)
           Text(
-            '${property.title.toUpperCase()} | ${property.location.display.isNotEmpty ? property.location.display : "Sector 5A, Kharghar, Navi Mumbai, Maharashtra"}',
+            '${property.title.toUpperCase()} | $locationDisplay',
             style: TextStyle(
               color: textP.withOpacity(0.85),
               fontSize: 12.5,
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 2),
-          Text(
-            'Plot 17–19, Sector 5A · MahaRERA PM1271012502176',
-            style: TextStyle(color: textS, fontSize: 11),
-          ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
 
-          // ── Top 3 Key Stat Boxes (Screenshot 1: 12.5% CAGR | +80% | ₹72,081) ──
+          // ── Key Metrics 4-Box Row ──────────────────────────────
           Row(
             children: [
               Expanded(
                 child: _statBox(
-                  '12.5% CAGR',
-                  'Base case, all horizons',
+                  '${baseCagr.toStringAsFixed(1)}% p.a.',
+                  'Target net XIRR',
                   const Color(0xFF10B981),
                   dark,
                   cardBg,
@@ -8388,9 +8438,9 @@ class _ProjectedReturnsReportModalState extends State<_ProjectedReturnsReportMod
               const SizedBox(width: 8),
               Expanded(
                 child: _statBox(
-                  '+80%',
-                  'Projected 5 year return',
-                  const Color(0xFF3B82F6),
+                  statRateValue,
+                  statRateLabel,
+                  textP,
                   dark,
                   cardBg,
                   borderC,
@@ -8399,9 +8449,20 @@ class _ProjectedReturnsReportModalState extends State<_ProjectedReturnsReportMod
               const SizedBox(width: 8),
               Expanded(
                 child: _statBox(
-                  '₹72,081',
-                  'Projected per sq ft, 2031',
-                  const Color(0xFF8B5CF6),
+                  statAreaValue,
+                  statAreaLabel,
+                  textP,
+                  dark,
+                  cardBg,
+                  borderC,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _statBox(
+                  property.formattedPrice,
+                  'Total valuation',
+                  textP,
                   dark,
                   cardBg,
                   borderC,
@@ -8411,7 +8472,7 @@ class _ProjectedReturnsReportModalState extends State<_ProjectedReturnsReportMod
           ),
           const SizedBox(height: 18),
 
-          // ── Executive Summary (Matching Screenshot) ───────────────
+          // ── Narrative Section ──────────────────────────────────
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -8422,38 +8483,38 @@ class _ProjectedReturnsReportModalState extends State<_ProjectedReturnsReportMod
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (property.growthProjections != null && property.growthProjections!.trim().isNotEmpty) ...[
-                  Text(
-                    'Growth Projections & Investment Thesis',
-                    style: TextStyle(color: textP, fontSize: 13, height: 1.45, fontWeight: FontWeight.w700),
+                Text(
+                  'PROJECT & VALUE PROPOSITION',
+                  style: TextStyle(
+                    color: textS,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.8,
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    property.growthProjections!,
-                    style: TextStyle(color: textS, fontSize: 12, height: 1.5),
-                  ),
-                ] else ...[
-                  Text(
-                    """Executive summary. ${property.title} enters ${property.location.city ?? "Kharghar"} with a prime residential estate on Plot 17–19, Sector 5A, the best single price marker for ${property.location.city ?? "Kharghar"} land to date. Homes run 725–775 sq ft carpet (2 BHK) and ~1,100–1,200 (3 BHK) at approximately ₹40,000/sq ft carpet.""",
-                    style: TextStyle(color: textP, fontSize: 12, height: 1.45, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    """The node's own record is the most useful anchor available. ${property.location.city ?? "Kharghar"} has compounded at roughly 10.5% a year since 2015; its strongest sectors have realised 7% (Sector 6) and 10% (Sector 23) over five years. Sector 5A currently trades at roughly ₹35,000–38,000/sq ft. The mature Navi Mumbai nodes (Vashi 9%, Nerul 6%, Panvel 4.4%, New Panvel 5% over ten years) set the floor band at 6–9% gross.""",
-                    style: TextStyle(color: textS, fontSize: 11.5, height: 1.4),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    """Our base case of 12.5% a year is built from ${property.location.city ?? "Kharghar"}'s own record rather than the wider mature-node band: the node's realised 10.5% carried forward, plus a ~2 point in-hold catalyst premium sized to Mumbai's measured coastal-road precedent. It requires the corridor to keep doing what it has been doing, and it requires CIDCO to deliver the road stack: the Turbhe link tunnel by 2028, the coastal road by 2029 close to target.""",
-                    style: TextStyle(color: textS, fontSize: 11.5, height: 1.4),
-                  ),
-                ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  property.valuationSummary != null && property.valuationSummary!.trim().isNotEmpty
+                      ? property.valuationSummary!
+                      : 'Executive summary. ${property.title} represents an institutional-grade $propTypeLabel investment in $locationDisplay. With a total underwritten valuation of ${property.formattedPrice}, the project targets an annualized return of ${baseCagr.toStringAsFixed(1)}% XIRR, comprising an expected rental yield of ${property.expectedRentalYield.toStringAsFixed(1)}% p.a. and capital appreciation of ${property.expectedAppreciation.toStringAsFixed(1)}% p.a.',
+                  style: TextStyle(color: textP, fontSize: 12, height: 1.45, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'The asset is supported by strong regional commercial absorption and infrastructure connectivity in ${property.location.city ?? property.location.state ?? "the region"}. Established lease covenants and ongoing micro-market infill establish a resilient floor for long-term yields.',
+                  style: TextStyle(color: textS, fontSize: 11.5, height: 1.4),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Our base case of ${baseCagr.toStringAsFixed(1)}% a year is structured around verifiable comparable sales and institutional underwriting standards. Investor rights are secured via a dedicated asset SPV (${property.spvName}) with SEBI-regulated independent trustee escrow oversight.',
+                  style: TextStyle(color: textS, fontSize: 11.5, height: 1.4),
+                ),
               ],
             ),
           ),
           const SizedBox(height: 18),
 
-          // ── Scenario Table (Exact Match to Screenshot) ────────────
+          // ── Scenario Analysis Table ────────────────────────────
           Text(
             'Scenario Analysis & Return Horizons',
             style: TextStyle(color: textP, fontSize: 14.5, fontWeight: FontWeight.w800),
@@ -8490,11 +8551,11 @@ class _ProjectedReturnsReportModalState extends State<_ProjectedReturnsReportMod
                   // Bear case
                   _scenarioRow(
                     'Bear case',
-                    '9.5% CAGR',
-                    '+20% · 1.20x\n₹47,961/sq ft',
-                    '+31% · 1.31x\n₹52,517/sq ft',
-                    '+44% · 1.44x\n₹57,506/sq ft',
-                    '+57% · 1.57x\n₹62,970/sq ft',
+                    '${bearCagr.toStringAsFixed(1)}% CAGR',
+                    calcCell(bearCagr, 2),
+                    calcCell(bearCagr, 3),
+                    calcCell(bearCagr, 4),
+                    calcCell(bearCagr, 5),
                     false,
                     textP,
                     textS,
@@ -8503,11 +8564,11 @@ class _ProjectedReturnsReportModalState extends State<_ProjectedReturnsReportMod
                   // Base case (Highlighted Green)
                   _scenarioRow(
                     'Base case',
-                    '12.5% CAGR',
-                    '+27% · 1.27x\n₹50,625/sq ft',
-                    '+42% · 1.42x\n₹56,953/sq ft',
-                    '+60% · 1.60x\n₹64,072/sq ft',
-                    '+80% · 1.80x\n₹72,081/sq ft',
+                    '${baseCagr.toStringAsFixed(1)}% CAGR',
+                    calcCell(baseCagr, 2),
+                    calcCell(baseCagr, 3),
+                    calcCell(baseCagr, 4),
+                    calcCell(baseCagr, 5),
                     true,
                     textP,
                     textS,
@@ -8516,11 +8577,11 @@ class _ProjectedReturnsReportModalState extends State<_ProjectedReturnsReportMod
                   // Bull case
                   _scenarioRow(
                     'Bull case',
-                    '15.5% CAGR',
-                    '+33% · 1.33x\n₹53,361/sq ft',
-                    '+54% · 1.54x\n₹61,632/sq ft',
-                    '+78% · 1.78x\n₹71,185/sq ft',
-                    '+106% · 2.06x\n₹82,219/sq ft',
+                    '${bullCagr.toStringAsFixed(1)}% CAGR',
+                    calcCell(bullCagr, 2),
+                    calcCell(bullCagr, 3),
+                    calcCell(bullCagr, 4),
+                    calcCell(bullCagr, 5),
                     false,
                     textP,
                     textS,
@@ -8534,12 +8595,12 @@ class _ProjectedReturnsReportModalState extends State<_ProjectedReturnsReportMod
 
           // How the rates are set
           Text(
-            """How the rates are set. Each case applies one constant annual rate across every horizon, compounded from a ₹40,000/sq ft carpet base. Rates are calibrated on ${property.location.city ?? "Kharghar"}'s realised node appreciation, sector comparables inside the node, the mature-node Navi Mumbai ten-year record and the delivery calendar of the catalyst stack. Implied values are per sqft of RERA carpet area and exclude preferential location charges, GST, duties and stamp duty, which a buyer pays on top. On a 2 BHK at 725 sq ft carpet the base case implies ~₹4.13 cr at year three and ~₹5.23 cr at year five.""",
+            'How the rates are set. Each case applies one constant annual compounding rate from the appraised asset valuation base of ${property.formattedPrice}. Rates are calibrated on realised regional appreciation in ${property.location.city ?? property.location.state ?? "the corridor"}, comparable transaction records, and the delivery calendar of local infrastructure. Implied values exclude preferential location charges, duties, and taxes.',
             style: TextStyle(color: textS, fontSize: 11, height: 1.35),
           ),
           const SizedBox(height: 16),
 
-          // ── Our View (Dark Teal Callout from Screenshot) ─────────
+          // ── Our View ───────────────────────────────────────────
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -8566,7 +8627,7 @@ class _ProjectedReturnsReportModalState extends State<_ProjectedReturnsReportMod
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  """The base case at 12.5% a year is the rate we would underwrite for ${property.location.city ?? "Kharghar"}. The catalyst register derives a 6–9% gross band for a well selected Navi Mumbai node; ${property.location.city ?? "Kharghar"} is the exception to it on two grounds: its realised rate is one to six points above every mature node, it carries the densest in-hold catalyst stack in the region.""",
+                  'The base case at ${baseCagr.toStringAsFixed(1)}% a year represents our underwritten target for ${property.title} in $locationDisplay. The asset offers an attractive risk-adjusted yield spread above traditional fixed income, with clear capital protection via institutional SPV custodianship and SEBI-registered escrow oversight.',
                   style: const TextStyle(
                     color: Color(0xFFE6FFFA),
                     fontSize: 11.5,
@@ -8581,7 +8642,7 @@ class _ProjectedReturnsReportModalState extends State<_ProjectedReturnsReportMod
 
           // Sources footer
           Text(
-            'Sources: Listing data, Sep 2026. MahaRERA registrations PM1271012502176. CIDCO land-allotment disclosure. Vikaone Research Desk, September 2026.',
+            'Sources: Certified listing data, ${property.valuationReportDate != null && property.valuationReportDate!.isNotEmpty ? property.valuationReportDate! : "October 2026"}. ${property.reraNumber != null && property.reraNumber!.isNotEmpty ? "RERA Regn: ${property.reraNumber!}. " : ""}Independent Valuer: ${property.valuationAuthority != null && property.valuationAuthority!.isNotEmpty ? property.valuationAuthority! : "Independent RICS / IBBI Registered Valuer"}. VikaDrx Research Desk.',
             style: TextStyle(color: textS.withOpacity(0.6), fontSize: 9.5, height: 1.3),
           ),
         ],
@@ -8589,7 +8650,7 @@ class _ProjectedReturnsReportModalState extends State<_ProjectedReturnsReportMod
     );
   }
 
-  // ── Page 2: Growth Drivers (Screenshot 2: Turbhe, Coastal, Airport) 
+  // ── Page 2: Growth Drivers (Project Specific) ─────────────────────
   Widget _buildPage2GrowthDrivers(
     PropertyModel property,
     bool dark,
@@ -8598,34 +8659,39 @@ class _ProjectedReturnsReportModalState extends State<_ProjectedReturnsReportMod
     Color cardBg,
     Color borderC,
   ) {
+    final cityName = property.location.city ?? property.location.state ?? 'Regional Corridor';
+
+    // If custom growthProjections were provided by admin, display them
+    final customNarrative = property.growthProjections?.trim() ?? '';
+
     final drivers = [
       {
-        'num': '1. Turbhe link tunnel',
-        'cost': '₹2,099 cr · 5.49 km · deadline Sep 2028',
-        'desc': 'A 1.76–1.8 km twin tunnel through Kharghar hills connecting directly to Thane-Belapur viaduct. CIDCO/Rithwik Projects; physical start Dec 2024. Turbhe <-> Kharghar falls from 40 minutes to 10 minutes, relieving Sion-Panvel Highway.',
-        'icon': Icons.tune_rounded,
-        'badge': 'TUNNEL LINK',
+        'num': '01 · Strategic Connectivity & Transit',
+        'cost': 'Prime Transit Access',
+        'badge': 'CONNECTIVITY',
+        'icon': Icons.alt_route_rounded,
+        'desc': 'Direct connectivity to major arterial highways, state corridors, and rapid transit networks in $cityName, ensuring convenient accessibility for commercial tenants, logistics operators, and visitors.',
       },
       {
-        'num': '2. Coastal Road',
-        'cost': '₹1,200 cr · 9.678 km · ready 2029',
-        'desc': 'Direct elevated sea-corridor from Kharghar station towards Nerul/Belapur on stilts along Panvel Creek with grade-separated interchange over Sion-Panvel Expressway. Forest clearance pending, contract awarded.',
-        'icon': Icons.water_rounded,
-        'badge': 'COASTAL HIGHWAY',
+        'num': '02 · Institutional Catchment & Tenant Pool',
+        'cost': 'High Absorption',
+        'badge': 'COMMERCIAL DEMAND',
+        'icon': Icons.corporate_fare_rounded,
+        'desc': 'Proximity to high-density employment centers, commercial developments, and established retail ecosystems driving strong occupancy rates and consistent rental demand.',
       },
       {
-        'num': '3. Tata Memorial / NSI Cancer Block',
-        'cost': '₹380 cr · operational Jul 2027',
-        'desc': 'A 60-bed bone marrow-transplant unit, the largest in India, designed for 600+ transplants and 1.3 lakh OPD patients a year. Tata Memorial operates its multispecialty medical research campus in Kharghar.',
-        'icon': Icons.local_hospital_rounded,
-        'badge': 'HEALTHCARE HUB',
+        'num': '03 · Micro-Market Capital Appreciation',
+        'cost': 'Capital Growth',
+        'badge': 'APPRECIATION',
+        'icon': Icons.trending_up_rounded,
+        'desc': 'Sustained capital appreciation supported by limited supply of Grade-A prime land and ongoing municipal infrastructure investments across the $cityName region.',
       },
       {
-        'num': '4. Navi Mumbai International Airport (NMIA)',
-        'cost': '₹16,700 cr · ~20 MPPA Phase 1',
-        'desc': 'Adani 74% / CIDCO 26%. Commercial flight operations commence mid-2026 with terminal capacity of 20 million passengers annually. Kharghar sits roughly 14 km north of the site, driving peak capital demand.',
-        'icon': Icons.flight_takeoff_rounded,
-        'badge': 'AIRPORT CATALYST',
+        'num': '04 · Statutory RERA & Institutional Custody',
+        'cost': 'Legal Protection',
+        'badge': 'REGULATORY',
+        'icon': Icons.verified_user_rounded,
+        'desc': '100% clear and marketable freehold title backed by statutory registrations, independent escrow oversight, and institutional quarterly compliance filings.',
       },
     ];
 
@@ -8636,12 +8702,12 @@ class _ProjectedReturnsReportModalState extends State<_ProjectedReturnsReportMod
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'What supports the projection',
+            'Regional catalysts & infrastructure',
             style: TextStyle(color: textS, fontSize: 12, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 4),
           Text(
-            'Growth Drivers & Infrastructure Stack',
+            'Growth Drivers: ${property.title}',
             style: TextStyle(
               color: textP,
               fontSize: 22,
@@ -8649,12 +8715,44 @@ class _ProjectedReturnsReportModalState extends State<_ProjectedReturnsReportMod
               letterSpacing: -0.3,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
-            'Four tier-1 public infrastructure catalysts underwriting 12.5% CAGR over 2026–2031:',
-            style: TextStyle(color: textS, fontSize: 12),
+            'Key macroeconomic, infrastructure, and commercial catalysts underwriting capital appreciation and steady rental absorption.',
+            style: TextStyle(color: textS, fontSize: 12, height: 1.4),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
+
+          if (customNarrative.isNotEmpty) ...[
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF10B981).withOpacity(dark ? 0.15 : 0.08),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.stars_rounded, color: Color(0xFF10B981), size: 18),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Project Specific Catalysts',
+                        style: TextStyle(color: textP, fontSize: 13.5, fontWeight: FontWeight.w800),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    customNarrative,
+                    style: TextStyle(color: textP, fontSize: 12, height: 1.45),
+                  ),
+                ],
+              ),
+            ),
+          ],
 
           ...drivers.map((d) {
             return Container(
@@ -8840,13 +8938,13 @@ class _ProjectedReturnsReportModalState extends State<_ProjectedReturnsReportMod
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _detailRow('Asset Appraised Valuation', property.formattedPrice, textP, textS),
-                _detailRow('Valuation Method', 'Discounted Cash Flow (DCF) + Comparable Sales', textP, textS),
-                _detailRow('Independent Valuer', 'CBRE & JLL Approved Valuation Team', textP, textS),
+                _detailRow('Valuation Method', property.valuationMethodology != null && property.valuationMethodology!.isNotEmpty ? property.valuationMethodology! : 'Discounted Cash Flow (DCF) + Comparable Sales Approach', textP, textS),
+                _detailRow('Independent Valuer', property.valuationAuthority != null && property.valuationAuthority!.isNotEmpty ? property.valuationAuthority! : 'Independent RICS & IBBI Registered Valuer', textP, textS),
                 _detailRow('Title Clearance', 'Clear & Marketable (100% Encumbrance Free)', textP, textS),
-                _detailRow('RERA Status', 'Verified Active RERA Registration', textP, textS),
+                _detailRow('RERA Status', property.reraNumber != null && property.reraNumber!.isNotEmpty ? 'Verified (${property.reraNumber!})' : 'Verified & Compliant', textP, textS),
                 _detailRow('SPV Entity', property.spvName, textP, textS),
                 _detailRow('Custodian / Escrow', '${property.spvTrusteeName} & ${property.spvEscrowBank.isNotEmpty ? property.spvEscrowBank : "ICICI"} Escrow', textP, textS),
-                _detailRow('MCA Quarterly Filing', 'Guaranteed Q1–Q4 Form 3 filings', textP, textS),
+                _detailRow('MCA Quarterly Filing', 'Guaranteed Q1–Q4 Form 3 / Form 4 filings with MCA', textP, textS),
               ],
             ),
           ),
@@ -9445,7 +9543,7 @@ class _PropertyDocumentsSection extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             _buildStaticDocItem(
-              title: 'MahaRERA Project Registration Certificate',
+              title: 'RERA Project Registration Certificate',
               type: 'RERA Compliance',
               badge: 'Registered',
             ),

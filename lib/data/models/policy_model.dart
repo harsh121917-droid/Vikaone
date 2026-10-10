@@ -37,11 +37,11 @@ class LegalPolicyModel {
       content: j['content']?.toString() ?? '',
       pdfUrl: j['pdfUrl']?.toString(),
       lastUpdated: j['lastUpdated'] != null ? DateTime.tryParse(j['lastUpdated'].toString()) : null,
-      supportEmail: j['supportEmail']?.toString() ?? 'support@vikaone.com',
+      supportEmail: j['supportEmail']?.toString() ?? 'support@vikadrx.com',
       supportPhone: j['supportPhone']?.toString() ?? '+91 80000 12345',
       supportWhatsapp: j['supportWhatsapp']?.toString() ?? '+91 80000 12345',
       supportHours: j['supportHours']?.toString() ?? 'Mon - Sat: 9:30 AM - 7:00 PM IST',
-      officeAddress: j['officeAddress']?.toString() ?? 'Vikaone Realty Private Limited, Nariman Point, Mumbai, Maharashtra 400021',
+      officeAddress: j['officeAddress']?.toString() ?? 'VikaDrx Realty Private Limited, Nariman Point, Mumbai, Maharashtra 400021',
       faqs: (j['faqs'] as List? ?? [])
           .map((e) => SupportFaq.fromJson(e is Map<String, dynamic> ? e : Map<String, dynamic>.from(e as Map)))
           .toList(),

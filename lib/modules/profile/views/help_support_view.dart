@@ -63,15 +63,15 @@ class _HelpSupportViewState extends State<HelpSupportView> {
           title: 'Investor Help & Customer Support Center',
           version: 'v1.0',
           content: 'Our investor support team is always available to help you with property investments, KYC, and dividend payouts.',
-          supportEmail: 'support@vikaone.com',
+          supportEmail: 'support@vikadrx.com',
           supportPhone: '+91 80000 12345',
           supportWhatsapp: '+91 80000 12345',
           supportHours: 'Monday - Saturday: 9:30 AM - 7:00 PM IST',
-          officeAddress: 'Vikaone Realty Private Limited, Nariman Point, Mumbai, Maharashtra 400021',
+          officeAddress: 'VikaDrx Realty Private Limited, Nariman Point, Mumbai, Maharashtra 400021',
           faqs: [
             SupportFaq(
-              question: 'How does fractional real estate investment work on Vikaone?',
-              answer: 'Vikaone acquires prime commercial and residential properties via an asset-specific Special Purpose Vehicle (LLP). Investors buy fractional Bricks and hold legal partnership in the LLP, earning quarterly rental income and capital appreciation.',
+              question: 'How does fractional real estate investment work on VikaDrx?',
+              answer: 'VikaDrx acquires prime commercial and residential properties via an asset-specific Special Purpose Vehicle (LLP). Investors buy fractional Bricks and hold legal partnership in the LLP, earning quarterly rental income and capital appreciation.',
             ),
             SupportFaq(
               question: 'When and how are rental yields paid out?',
@@ -79,11 +79,11 @@ class _HelpSupportViewState extends State<HelpSupportView> {
             ),
             SupportFaq(
               question: 'How is my investment protected under MCA?',
-              answer: 'Every investor is formally registered as a partner in the asset LLP. Vikaone files Form 3/Form 4 with the Ministry of Corporate Affairs, giving you direct statutory ownership.',
+              answer: 'Every investor is formally registered as a partner in the asset LLP. VikaDrx files Form 3/Form 4 with the Ministry of Corporate Affairs, giving you direct statutory ownership.',
             ),
             SupportFaq(
               question: 'How do I exit or sell my fractional Bricks?',
-              answer: 'After a 12-month lock-in period, you can list your Bricks on Vikaone\x27s secondary market for verified investors, or take part in full asset liquidation buyouts.',
+              answer: 'After a 12-month lock-in period, you can list your Bricks on VikaDrx\x27s secondary market for verified investors, or take part in full asset liquidation buyouts.',
             ),
           ],
         );
@@ -124,7 +124,7 @@ class _HelpSupportViewState extends State<HelpSupportView> {
 
     final user = Get.find<AuthController>().user.value;
     final name = user?.name ?? 'Investor';
-    final email = user?.email ?? (_policy?.supportEmail ?? 'investor@vikaone.com');
+    final email = user?.email ?? (_policy?.supportEmail ?? 'investor@vikadrx.com');
     final phone = user?.phone ?? '';
 
     setState(() => _isSubmitting = true);
@@ -237,7 +237,7 @@ class _HelpSupportViewState extends State<HelpSupportView> {
                             textP: textP,
                             onTap: () {
                               final wa = (_policy?.supportWhatsapp ?? '918000012345').replaceAll(RegExp(r'[^0-9]'), '');
-                              _launchAction('https://wa.me/$wa?text=Hello%20Vikaone%20Support,%20I%20have%20an%20inquiry%20regarding%20my%20investment', 'WhatsApp Support');
+                              _launchAction('https://wa.me/$wa?text=Hello%20VikaDrx%20Support,%20I%20have%20an%20inquiry%20regarding%20my%20investment', 'WhatsApp Support');
                             },
                           ),
                         ),
@@ -253,7 +253,7 @@ class _HelpSupportViewState extends State<HelpSupportView> {
                             borderC: borderC,
                             textP: textP,
                             onTap: () {
-                              final email = _policy?.supportEmail ?? 'support@vikaone.com';
+                              final email = _policy?.supportEmail ?? 'support@vikadrx.com';
                               _launchAction('mailto:$email?subject=Investor%20Support%20Request', 'Email Support');
                             },
                           ),
@@ -603,7 +603,7 @@ class _HelpSupportViewState extends State<HelpSupportView> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  _policy?.officeAddress ?? 'Vikaone Realty Private Limited, Nariman Point, Mumbai, Maharashtra 400021',
+                  _policy?.officeAddress ?? 'VikaDrx Realty Private Limited, Nariman Point, Mumbai, Maharashtra 400021',
                   style: TextStyle(color: textS, fontSize: 11, height: 1.35),
                 ),
               ],

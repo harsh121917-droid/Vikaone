@@ -8,7 +8,7 @@ import '../../properties/views/properties_view.dart';
 import '../../investments/views/investments_view.dart';
 import '../views/home_view.dart';
 import '../../profile/views/profile_view.dart';
-import '../../savings/views/savings_view.dart';
+import '../../business/views/business_view.dart';
 import '../controllers/main_shell_controller.dart';
 
 class MainShellView extends GetView<MainShellController> {
@@ -26,7 +26,7 @@ class MainShellView extends GetView<MainShellController> {
             HomeView(),
             PropertiesView(),
             InvestmentsView(),
-            SavingsView(),
+            BusinessView(),
             ProfileView(),
           ],
         ),
@@ -54,7 +54,7 @@ const _items = [
   _NI(Icons.home_rounded, 'Home'),
   _NI(Icons.apartment_outlined, 'Explore'),
   _NI(Icons.account_balance_wallet_outlined, 'Bricks'),
-  _NI(Icons.savings_outlined, 'Savings'),
+  _NI(Icons.business_center_rounded, 'Business'),
   _NI(Icons.person_outline_rounded, 'Profile'),
 ];
 

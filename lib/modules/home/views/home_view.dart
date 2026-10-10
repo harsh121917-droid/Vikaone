@@ -1530,7 +1530,7 @@ class _HowItWorksSectionState extends State<_HowItWorksSection> {
                 // 3-step vertical timeline
                 _TimelineStep(
                   number: '1',
-                  title: 'Vikaone Realty Series LLP',
+                  title: 'VikaDrx Realty Series LLP',
                   subtitle: 'holds the title of the property',
                   dark: dark,
                   isLast: false,
@@ -1545,7 +1545,7 @@ class _HowItWorksSectionState extends State<_HowItWorksSection> {
                 _TimelineStep(
                   number: '3',
                   title: 'Your partnership is filed in MCA',
-                  subtitle: 'Vikaone does the filing on your behalf every quarter',
+                  subtitle: 'VikaDrx does the filing on your behalf every quarter',
                   dark: dark,
                   isLast: true,
                 ),
