@@ -30,6 +30,29 @@ class _BusinessDetailViewState extends State<BusinessDetailView> {
     super.dispose();
   }
 
+  void _openGalleryModal(BuildContext context, List<String> images, bool dark) {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _BusinessPhotosModal(
+        business: widget.business,
+        images: images,
+        initialIndex: _currentImageIndex,
+        dark: dark,
+        onPhotoChanged: (index) {
+          if (index != _currentImageIndex && index < images.length) {
+            setState(() => _currentImageIndex = index);
+            if (_pageCtrl.hasClients) {
+              _pageCtrl.jumpToPage(index);
+            }
+          }
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final b = widget.business;
@@ -39,8 +62,9 @@ class _BusinessDetailViewState extends State<BusinessDetailView> {
     final titleColor = dark ? Colors.white : const Color(0xFF0F172A);
     final subColor = dark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
     final borderColor = dark ? Colors.white.withOpacity(0.08) : const Color(0xFFE2E8F0);
+    const primaryBlue = Color(0xFF2563EB);
 
-    final allImages = b.images.isNotEmpty ? b.images.map((i) => i.url).toList() : [b.coverImage];
+    final allImages = b.allImageUrls;
 
     return Scaffold(
       backgroundColor: bg,
@@ -51,7 +75,7 @@ class _BusinessDetailViewState extends State<BusinessDetailView> {
             slivers: [
               // ── 1. Sliver Hero Image Carousel ──
               SliverAppBar(
-                expandedHeight: 300,
+                expandedHeight: 310,
                 pinned: true,
                 elevation: 0,
                 backgroundColor: dark ? const Color(0xFF0F172A) : Colors.white,
@@ -66,18 +90,51 @@ class _BusinessDetailViewState extends State<BusinessDetailView> {
                   ),
                 ),
                 actions: [
+                  if (allImages.length > 1)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                      child: GestureDetector(
+                        onTap: () => _openGalleryModal(context, allImages, dark),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.65),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.white.withOpacity(0.25)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.photo_library_rounded, color: Colors.white, size: 13),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Photos (${allImages.length})',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                   Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: CircleAvatar(
                       backgroundColor: Colors.black.withOpacity(0.6),
                       child: IconButton(
-                        icon: const Icon(Icons.share_outlined, color: Colors.white, size: 20),
+                        icon: const Icon(Icons.share_outlined, color: Colors.white, size: 19),
                         onPressed: () {
                           HapticFeedback.lightImpact();
-                          Get.snackbar('Share Link', 'Project link copied to clipboard',
-                              snackPosition: SnackPosition.BOTTOM,
-                              backgroundColor: const Color(0xFF00D09C),
-                              colorText: Colors.black);
+                          Get.snackbar(
+                            'Share Link',
+                            'Venture opportunity link copied to clipboard',
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: primaryBlue,
+                            colorText: Colors.white,
+                          );
                         },
                       ),
                     ),
@@ -94,7 +151,7 @@ class _BusinessDetailViewState extends State<BusinessDetailView> {
                           return Image.network(
                             allImages[i],
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
+                            errorBuilder: (_, err, trace) => Container(
                               color: const Color(0xFF1E293B),
                               child: Center(
                                 child: Icon(b.categoryIcon, color: b.categoryColor, size: 64),
@@ -122,6 +179,39 @@ class _BusinessDetailViewState extends State<BusinessDetailView> {
                         ),
                       ),
 
+                      // Floating photo count badge on hero image (bottom-right)
+                      Positioned(
+                        bottom: 16,
+                        right: 16,
+                        child: GestureDetector(
+                          onTap: () => _openGalleryModal(context, allImages, dark),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.65),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: Colors.white.withOpacity(0.25)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.photo_library_rounded, size: 12, color: Colors.white),
+                                const SizedBox(width: 5),
+                                Text(
+                                  '${_currentImageIndex + 1}/${allImages.length}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+
                       // Page Dots
                       if (allImages.length > 1)
                         Positioned(
@@ -138,7 +228,7 @@ class _BusinessDetailViewState extends State<BusinessDetailView> {
                                 width: isSel ? 20 : 6,
                                 height: 6,
                                 decoration: BoxDecoration(
-                                  color: isSel ? const Color(0xFF00D09C) : Colors.white54,
+                                  color: isSel ? primaryBlue : Colors.white54,
                                   borderRadius: BorderRadius.circular(3),
                                 ),
                               );
@@ -208,105 +298,187 @@ class _BusinessDetailViewState extends State<BusinessDetailView> {
                           height: 1.25,
                         ),
                       ),
-                      if (b.spvName.isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        Text(
-                          'SPV: ${b.spvName}',
-                          style: TextStyle(color: const Color(0xFF00D09C), fontSize: 12, fontWeight: FontWeight.w600),
-                        ),
-                      ],
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 6),
 
-                      // ── 3. High-Yield Financial Summary Card ──
+                      // SPV Name Tag
+                      if (b.spvName.isNotEmpty) ...[
+                        Row(
+                          children: [
+                            const Icon(Icons.domain_verification_rounded, color: primaryBlue, size: 16),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Operated by SPV: ${b.spvName}',
+                              style: const TextStyle(
+                                color: primaryBlue,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                      ],
+
+                      // ── Venture Photos Thumbnail Strip (if multi-photo) ──
+                      if (allImages.length > 1) ...[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Venture Photos (${allImages.length})',
+                              style: TextStyle(
+                                color: titleColor,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: () => _openGalleryModal(context, allImages, dark),
+                              child: const Text(
+                                'View All',
+                                style: TextStyle(
+                                  color: primaryBlue,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          height: 72,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: allImages.length,
+                            separatorBuilder: (ctx, idx) => const SizedBox(width: 10),
+                            itemBuilder: (ctx, i) {
+                              final isSel = i == _currentImageIndex;
+                              return GestureDetector(
+                                onTap: () {
+                                  setState(() => _currentImageIndex = i);
+                                  _pageCtrl.animateToPage(
+                                    i,
+                                    duration: const Duration(milliseconds: 250),
+                                    curve: Curves.easeInOut,
+                                  );
+                                },
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  width: 96,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: isSel
+                                          ? primaryBlue
+                                          : (dark ? Colors.white12 : const Color(0xFFE2E8F0)),
+                                      width: isSel ? 2.5 : 1,
+                                    ),
+                                    boxShadow: isSel
+                                        ? [
+                                            BoxShadow(
+                                              color: primaryBlue.withOpacity(0.35),
+                                              blurRadius: 8,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ]
+                                        : null,
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.network(
+                                      allImages[i],
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, err, trace) => Container(
+                                        color: dark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+                                        child: const Center(
+                                          child: Icon(Icons.broken_image_rounded, size: 24, color: Colors.grey),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+
+                      // ── 3. Four Key Metrics ──
                       Container(
-                        padding: const EdgeInsets.all(18),
+                        padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: cardBg,
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(18),
                           border: Border.all(color: borderColor),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(dark ? 0.3 : 0.05),
-                              blurRadius: 16,
-                              offset: const Offset(0, 6),
-                            ),
-                          ],
                         ),
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Row(
+                            Row(
                               children: [
-                                Icon(Icons.analytics_rounded, color: Color(0xFF00D09C), size: 18),
-                                SizedBox(width: 8),
+                                const Icon(Icons.analytics_rounded, color: primaryBlue, size: 18),
+                                const SizedBox(width: 8),
                                 Text(
-                                  'VENTURE FINANCIAL HIGHLIGHTS',
+                                  'Key Investment Metrics',
                                   style: TextStyle(
-                                    color: Color(0xFF00D09C),
-                                    fontSize: 12,
+                                    color: primaryBlue,
+                                    fontSize: 13,
                                     fontWeight: FontWeight.w800,
-                                    letterSpacing: 0.6,
                                   ),
                                 ),
                               ],
                             ),
-                            const Divider(height: 24, thickness: 0.8),
-
-                            // Grid of 4 main metrics
-                            Row(
+                            const SizedBox(height: 14),
+                            GridView.count(
+                              crossAxisCount: 2,
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              mainAxisSpacing: 10,
+                              crossAxisSpacing: 10,
+                              childAspectRatio: 1.9,
                               children: [
-                                Expanded(
-                                  child: _DetailMetricBox(
-                                    label: 'MIN INVESTMENT',
-                                    value: b.formattedMinInvestment,
-                                    color: const Color(0xFF00D09C),
-                                    sub: 'Ticket size',
-                                  ),
+                                _DetailMetricBox(
+                                  label: 'MIN INVESTMENT',
+                                  value: b.formattedMinInvestment,
+                                  color: primaryBlue,
+                                  sub: 'Accessible Entry Ticket',
                                 ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: _DetailMetricBox(
-                                    label: 'TARGET RETURNS',
-                                    value: b.expectedReturns,
-                                    color: const Color(0xFFFBBF24),
-                                    sub: 'Projected yield',
-                                  ),
+                                _DetailMetricBox(
+                                  label: 'EXPECTED ROI',
+                                  value: b.expectedReturns,
+                                  color: const Color(0xFFFBBF24),
+                                  sub: 'Annualized Target',
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _DetailMetricBox(
-                                    label: 'TOTAL PROJECT SIZE',
-                                    value: b.formattedTotalCost,
-                                    color: titleColor,
-                                    sub: 'Capital outlay',
-                                  ),
+                                _DetailMetricBox(
+                                  label: 'PROJECT SIZE',
+                                  value: b.formattedTotalCost,
+                                  color: titleColor,
+                                  sub: 'Asset Valuation',
                                 ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: _DetailMetricBox(
-                                    label: 'INVESTMENT TENURE',
-                                    value: b.investmentTenure,
-                                    color: b.categoryColor,
-                                    sub: '${b.payoutFrequency} payouts',
-                                  ),
+                                _DetailMetricBox(
+                                  label: 'PAYOUT CYCLE',
+                                  value: b.payoutFrequency,
+                                  color: b.categoryColor,
+                                  sub: '${b.investmentTenure} Lock-in',
                                 ),
                               ],
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
 
-                      // ── 4. Project Overview / Description ──
+                      // ── 4. Detailed Description ──
                       Text(
-                        'Project Overview & Business Model',
-                        style: TextStyle(color: titleColor, fontSize: 17, fontWeight: FontWeight.w800),
+                        'About The Opportunity',
+                        style: TextStyle(
+                          color: titleColor,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 8),
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -319,61 +491,64 @@ class _BusinessDetailViewState extends State<BusinessDetailView> {
                           style: TextStyle(
                             color: subColor,
                             fontSize: 13,
-                            height: 1.55,
+                            height: 1.5,
                           ),
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
 
-                      // ── 5. Key Highlights / Investment Thesis ──
+                      // ── 5. Project Highlights ──
                       if (b.highlights.isNotEmpty) ...[
                         Text(
-                          'Strategic Investment Advantages',
-                          style: TextStyle(color: titleColor, fontSize: 17, fontWeight: FontWeight.w800),
+                          'Strategic Highlights',
+                          style: TextStyle(
+                            color: titleColor,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                         const SizedBox(height: 10),
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: cardBg,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: borderColor),
-                          ),
-                          child: Column(
-                            children: b.highlights.map((h) {
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 6),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Icon(Icons.check_circle_rounded, color: Color(0xFF00D09C), size: 18),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Text(
-                                        h,
-                                        style: TextStyle(color: titleColor, fontSize: 13, height: 1.35, fontWeight: FontWeight.w500),
-                                      ),
+                        ...b.highlights.map((hl) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Icon(Icons.check_circle_rounded, color: primaryBlue, size: 18),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    hl,
+                                    style: TextStyle(
+                                      color: titleColor,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      height: 1.35,
                                     ),
-                                  ],
+                                  ),
                                 ),
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
+                              ],
+                            ),
+                          );
+                        }),
+                        const SizedBox(height: 20),
                       ],
 
-                      // ── 6. Project Documents ──
+                      // ── 6. Verified Documents List ──
                       if (b.documents.isNotEmpty) ...[
                         Text(
-                          'Project Documents & Reports',
-                          style: TextStyle(color: titleColor, fontSize: 17, fontWeight: FontWeight.w800),
+                          'Due Diligence & Documents',
+                          style: TextStyle(
+                            color: titleColor,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                         const SizedBox(height: 10),
                         ...b.documents.map((doc) {
                           return Container(
-                            margin: const EdgeInsets.only(bottom: 8),
-                            padding: const EdgeInsets.all(14),
+                            margin: const EdgeInsets.only(bottom: 10),
+                            padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: cardBg,
                               borderRadius: BorderRadius.circular(14),
@@ -382,13 +557,12 @@ class _BusinessDetailViewState extends State<BusinessDetailView> {
                             child: Row(
                               children: [
                                 Container(
-                                  width: 40,
-                                  height: 40,
+                                  padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFEF4444).withOpacity(0.12),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
-                                  child: const Icon(Icons.picture_as_pdf_rounded, color: Color(0xFFEF4444), size: 22),
+                                  child: const Icon(Icons.picture_as_pdf_rounded, color: Color(0xFFEF4444), size: 20),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
@@ -410,17 +584,20 @@ class _BusinessDetailViewState extends State<BusinessDetailView> {
                                 ),
                                 OutlinedButton(
                                   style: OutlinedButton.styleFrom(
-                                    foregroundColor: const Color(0xFF00D09C),
-                                    side: const BorderSide(color: Color(0xFF00D09C)),
+                                    foregroundColor: primaryBlue,
+                                    side: const BorderSide(color: primaryBlue),
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                   ),
                                   onPressed: () {
                                     HapticFeedback.lightImpact();
-                                    Get.snackbar('Document Available', 'Opening ${doc.title}',
-                                        snackPosition: SnackPosition.BOTTOM,
-                                        backgroundColor: const Color(0xFF00D09C),
-                                        colorText: Colors.black);
+                                    Get.snackbar(
+                                      'Document Available',
+                                      'Opening ${doc.title}',
+                                      snackPosition: SnackPosition.BOTTOM,
+                                      backgroundColor: primaryBlue,
+                                      colorText: Colors.white,
+                                    );
                                   },
                                   child: const Text('View', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
                                 ),
@@ -435,22 +612,26 @@ class _BusinessDetailViewState extends State<BusinessDetailView> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF00D09C).withOpacity(0.06),
+                          color: primaryBlue.withOpacity(0.06),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFF00D09C).withOpacity(0.2)),
+                          border: Border.all(color: primaryBlue.withOpacity(0.2)),
                         ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(Icons.shield_outlined, color: Color(0xFF00D09C), size: 24),
+                            const Icon(Icons.shield_outlined, color: primaryBlue, size: 24),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
+                                  Text(
                                     'Institutional Investor Protection',
-                                    style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700),
+                                    style: TextStyle(
+                                      color: titleColor,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                    ),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
@@ -495,12 +676,21 @@ class _BusinessDetailViewState extends State<BusinessDetailView> {
                           children: [
                             const Text(
                               'MIN INVESTMENT',
-                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.5),
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF64748B),
+                                letterSpacing: 0.5,
+                              ),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               b.formattedMinInvestment,
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF00D09C)),
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                                color: primaryBlue,
+                              ),
                             ),
                           ],
                         ),
@@ -508,21 +698,39 @@ class _BusinessDetailViewState extends State<BusinessDetailView> {
 
                         // Consultation Button
                         Expanded(
-                          child: SizedBox(
-                            height: 48,
-                            child: ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF00D09C),
-                                foregroundColor: Colors.black,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                elevation: 0,
+                          child: GestureDetector(
+                            onTap: () => showScheduleBusinessCallSheet(context, b),
+                            child: Container(
+                              height: 48,
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+                                ),
+                                borderRadius: BorderRadius.circular(14),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: primaryBlue.withOpacity(0.35),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
                               ),
-                              icon: const Icon(Icons.phone_in_talk_rounded, size: 18),
-                              label: const Text(
-                                'Schedule Consultation',
-                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, letterSpacing: 0.3),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.phone_in_talk_rounded, size: 18, color: Colors.white),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Schedule Consultation',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              onPressed: () => showScheduleBusinessCallSheet(context, b),
                             ),
                           ),
                         ),
@@ -554,12 +762,13 @@ class _DetailMetricBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = ThemeController.to.isDark.value;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.04),
+        color: dark ? Colors.white.withOpacity(0.04) : const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.06)),
+        border: Border.all(color: dark ? Colors.white.withOpacity(0.06) : const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -578,8 +787,218 @@ class _DetailMetricBox extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             sub,
-            style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8)),
+            style: TextStyle(fontSize: 10, color: dark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BusinessPhotosModal extends StatefulWidget {
+  final BusinessModel business;
+  final List<String> images;
+  final int initialIndex;
+  final bool dark;
+  final ValueChanged<int> onPhotoChanged;
+
+  const _BusinessPhotosModal({
+    required this.business,
+    required this.images,
+    required this.initialIndex,
+    required this.dark,
+    required this.onPhotoChanged,
+  });
+
+  @override
+  State<_BusinessPhotosModal> createState() => _BusinessPhotosModalState();
+}
+
+class _BusinessPhotosModalState extends State<_BusinessPhotosModal> {
+  late int _activeIdx;
+  late final PageController _modalPageCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _activeIdx = widget.initialIndex;
+    _modalPageCtrl = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void dispose() {
+    _modalPageCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = widget.dark;
+    final bg = dark ? const Color(0xFF0F172A) : Colors.white;
+    final textColor = dark ? Colors.white : const Color(0xFF0F172A);
+    final subColor = dark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final borderColor = dark ? Colors.white.withOpacity(0.1) : const Color(0xFFE2E8F0);
+    const primaryBlue = Color(0xFF2563EB);
+
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.82,
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border.all(color: borderColor),
+      ),
+      child: Column(
+        children: [
+          // Top notch
+          const SizedBox(height: 12),
+          Container(
+            width: 44,
+            height: 5,
+            decoration: BoxDecoration(
+              color: dark ? Colors.white24 : const Color(0xFFCBD5E1),
+              borderRadius: BorderRadius.circular(3),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Header
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Venture Photos (${_activeIdx + 1}/${widget.images.length})',
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        widget.business.title,
+                        style: TextStyle(color: subColor, fontSize: 12),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => Navigator.of(context).pop(),
+                  child: Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: dark ? Colors.white.withOpacity(0.08) : const Color(0xFFF1F5F9),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: borderColor),
+                    ),
+                    child: Icon(
+                      Icons.close_rounded,
+                      color: dark ? Colors.white70 : const Color(0xFF475569),
+                      size: 18,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // Main Image PageView
+          Expanded(
+            child: PageView.builder(
+              controller: _modalPageCtrl,
+              itemCount: widget.images.length,
+              onPageChanged: (i) {
+                setState(() => _activeIdx = i);
+                widget.onPhotoChanged(i);
+              },
+              itemBuilder: (ctx, i) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Image.network(
+                      widget.images[i],
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, err, trace) => Container(
+                        color: dark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+                        child: Center(
+                          child: Icon(
+                            widget.business.categoryIcon,
+                            color: widget.business.categoryColor,
+                            size: 64,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Bottom Thumbnail bar
+          if (widget.images.length > 1)
+            Container(
+              height: 70,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: widget.images.length,
+                separatorBuilder: (ctx, idx) => const SizedBox(width: 8),
+                itemBuilder: (ctx, i) {
+                  final isSel = i == _activeIdx;
+                  return GestureDetector(
+                    onTap: () {
+                      _modalPageCtrl.animateToPage(
+                        i,
+                        duration: const Duration(milliseconds: 250),
+                        curve: Curves.easeInOut,
+                      );
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      width: 76,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: isSel ? primaryBlue : (dark ? Colors.white12 : const Color(0xFFCBD5E1)),
+                          width: isSel ? 2.5 : 1,
+                        ),
+                        boxShadow: isSel
+                            ? [
+                                BoxShadow(
+                                  color: primaryBlue.withOpacity(0.35),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          widget.images[i],
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, err, trace) => Container(
+                            color: Colors.grey.shade800,
+                            child: const Icon(Icons.broken_image, size: 20, color: Colors.white54),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          const SizedBox(height: 16),
         ],
       ),
     );

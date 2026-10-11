@@ -1,16 +1,15 @@
-import 'help_support_view.dart';
-import 'policy_detail_view.dart';
-import '../../home/controllers/main_shell_controller.dart';
-import '../../investments/controllers/investments_controller.dart';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/controllers/theme_controller.dart';
-import '../../auth/controllers/auth_controller.dart';
+
 import '../../../core/services/lock_service.dart';
+import '../../../core/theme/controllers/theme_controller.dart';
 import '../../../routes/app_routes.dart';
+import '../../auth/controllers/auth_controller.dart';
+import '../../home/controllers/main_shell_controller.dart';
+import '../../investments/controllers/investments_controller.dart';
+import 'help_support_view.dart';
+import 'policy_detail_view.dart';
 
 class ProfileView extends StatelessWidget {
   const ProfileView({super.key});
@@ -19,487 +18,675 @@ class ProfileView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Obx(() {
       final dark = ThemeController.to.isDark.value;
-      final user = Get.find<AuthController>().user.value;
+      final authCtrl = Get.find<AuthController>();
+      final user = authCtrl.user.value;
+
+      final bg = dark ? const Color(0xFF060B16) : const Color(0xFFF8FAFC);
+      final tp = dark ? const Color(0xFFEDF0FF) : const Color(0xFF0F172A);
+      final ts = dark ? const Color(0xFF8A95B0) : const Color(0xFF64748B);
+      final border = dark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0);
 
       return Scaffold(
-        backgroundColor: dark
-            ? const Color(0xFF060B16)
-            : const Color(0xFFF0F4FF),
-        body: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            children: [
-              _HeroSection(user: user, dark: dark),
-              _StatsStrip(dark: dark),
-              _MenuSection(dark: dark),
-              const SizedBox(height: 100),
-            ],
+        backgroundColor: bg,
+        body: SafeArea(
+          child: RefreshIndicator(
+            onRefresh: () async {
+              await authCtrl.fetchCurrentUser();
+            },
+            color: const Color(0xFF2563EB),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
+              padding: const EdgeInsets.fromLTRB(18, 12, 18, 100),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Top Header ──────────────────────────────────────────
+                  _buildTopHeader(context, dark, tp, ts, border),
+
+                  const SizedBox(height: 16),
+
+                  // ── Executive User Identity Card ────────────────────────
+                  _UserIdentityCard(user: user, dark: dark),
+
+                  const SizedBox(height: 16),
+
+                  // ── Investment & Portfolio Snapshot Bar ─────────────────
+                  _PortfolioSnapshotBar(dark: dark),
+
+                  const SizedBox(height: 22),
+
+                  // ── Section 1: Investments & Assets ─────────────────────
+                  _buildSectionHeader('INVESTMENTS & ASSETS', ts),
+                  const SizedBox(height: 8),
+                  _MenuGroupCard(
+                    dark: dark,
+                    children: [
+                      _MenuItemTile(
+                        icon: Icons.apartment_rounded,
+                        iconColor: const Color(0xFF2563EB),
+                        iconBg: const Color(0xFF2563EB).withOpacity(dark ? 0.2 : 0.1),
+                        title: 'Explore Properties',
+                        subtitle: 'Fractional Bricks & Full Ownership listings',
+                        dark: dark,
+                        onTap: () => _navigateToTab(1),
+                      ),
+                      _MenuItemTile(
+                        icon: Icons.business_center_rounded,
+                        iconColor: const Color(0xFF8B5CF6),
+                        iconBg: const Color(0xFF8B5CF6).withOpacity(dark ? 0.2 : 0.1),
+                        title: 'Business Opportunities',
+                        subtitle: 'Warehouses, petrol pumps, dairy farms & plants',
+                        dark: dark,
+                        onTap: () => _navigateToTab(3),
+                      ),
+                      _MenuItemTile(
+                        icon: Icons.layers_rounded,
+                        iconColor: const Color(0xFF10B981),
+                        iconBg: const Color(0xFF10B981).withOpacity(dark ? 0.2 : 0.1),
+                        title: 'My Portfolio & Bricks',
+                        subtitle: 'Track units, dividend earnings & yield',
+                        dark: dark,
+                        onTap: () => _navigateToTab(2),
+                      ),
+                      _MenuItemTile(
+                        icon: Icons.favorite_rounded,
+                        iconColor: const Color(0xFFF43F5E),
+                        iconBg: const Color(0xFFF43F5E).withOpacity(dark ? 0.2 : 0.1),
+                        title: 'Saved & Wishlist',
+                        subtitle: 'Bookmarked real estate & deals',
+                        dark: dark,
+                        isLast: true,
+                        onTap: () => Get.toNamed(AppRoutes.wishlist),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 22),
+
+                  // ── Section 2: Wallet & Payments ────────────────────────
+                  _buildSectionHeader('WALLET & PAYMENTS', ts),
+                  const SizedBox(height: 8),
+                  _MenuGroupCard(
+                    dark: dark,
+                    children: [
+                      _MenuItemTile(
+                        icon: Icons.account_balance_wallet_rounded,
+                        iconColor: const Color(0xFF0284C7),
+                        iconBg: const Color(0xFF0284C7).withOpacity(dark ? 0.2 : 0.1),
+                        title: 'VikaDrx Wallet',
+                        subtitle: 'Deposit, withdraw & available investment funds',
+                        dark: dark,
+                        onTap: () => Get.toNamed(AppRoutes.wallet),
+                      ),
+                      _MenuItemTile(
+                        icon: Icons.account_balance_rounded,
+                        iconColor: const Color(0xFF059669),
+                        iconBg: const Color(0xFF059669).withOpacity(dark ? 0.2 : 0.1),
+                        title: 'Bank Accounts',
+                        subtitle: 'Verified bank accounts for dividend payouts',
+                        dark: dark,
+                        onTap: () => Get.toNamed(AppRoutes.bankAccounts),
+                      ),
+                      _MenuItemTile(
+                        icon: Icons.receipt_long_rounded,
+                        iconColor: const Color(0xFFEA580C),
+                        iconBg: const Color(0xFFEA580C).withOpacity(dark ? 0.2 : 0.1),
+                        title: 'Transaction History',
+                        subtitle: 'All order receipts, deposits & transfers',
+                        dark: dark,
+                        isLast: true,
+                        onTap: () => Get.toNamed(AppRoutes.transactions),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 22),
+
+                  // ── Section 3: Account & Security ───────────────────────
+                  _buildSectionHeader('ACCOUNT & SECURITY', ts),
+                  const SizedBox(height: 8),
+                  _MenuGroupCard(
+                    dark: dark,
+                    children: [
+                      _MenuItemTile(
+                        icon: Icons.verified_user_rounded,
+                        iconColor: const Color(0xFF4F46E5),
+                        iconBg: const Color(0xFF4F46E5).withOpacity(dark ? 0.2 : 0.1),
+                        title: 'KYC Verification',
+                        subtitle: 'Identity, PAN & investor compliance',
+                        badgeText: _getKycBadgeText(user?.kycStatus),
+                        badgeColor: _getKycBadgeColor(user?.kycStatus),
+                        dark: dark,
+                        onTap: () => Get.toNamed(AppRoutes.kyc),
+                      ),
+                      Obx(() {
+                        final hasPin = LockService.to.pinActive.value;
+                        return _MenuItemTile(
+                          icon: Icons.lock_outline_rounded,
+                          iconColor: const Color(0xFF0D9488),
+                          iconBg: const Color(0xFF0D9488).withOpacity(dark ? 0.2 : 0.1),
+                          title: 'App Lock & Security',
+                          subtitle: '4-Digit PIN & Biometric protection',
+                          badgeText: hasPin ? 'Active 🔒' : 'Not Set',
+                          badgeColor: hasPin ? const Color(0xFF10B981) : const Color(0xFF94A3B8),
+                          dark: dark,
+                          onTap: () => Get.toNamed(AppRoutes.security),
+                        );
+                      }),
+                      _MenuItemTile(
+                        icon: Icons.badge_outlined,
+                        iconColor: const Color(0xFF6366F1),
+                        iconBg: const Color(0xFF6366F1).withOpacity(dark ? 0.2 : 0.1),
+                        title: 'Personal Info & Referral',
+                        subtitle: 'User ID, phone, referral link & tier details',
+                        dark: dark,
+                        isLast: true,
+                        onTap: () => _showAccountDetailsModal(context, user, dark),
+                      ),
+                    ],
+                  ),
+
+                  // ── Admin-Only Section (if role == 'admin') ─────────────
+                  if ((user?.role ?? '').toLowerCase() == 'admin') ...[
+                    const SizedBox(height: 22),
+                    _buildSectionHeader('ADMIN PORTAL', const Color(0xFF7C3AED)),
+                    const SizedBox(height: 8),
+                    _MenuGroupCard(
+                      dark: dark,
+                      children: [
+                        _MenuItemTile(
+                          icon: Icons.analytics_rounded,
+                          iconColor: const Color(0xFF7C3AED),
+                          iconBg: const Color(0xFF7C3AED).withOpacity(dark ? 0.2 : 0.1),
+                          title: 'Wishlist Analytics',
+                          subtitle: 'Inspect properties saved by investors',
+                          badgeText: 'Admin',
+                          badgeColor: const Color(0xFF7C3AED),
+                          dark: dark,
+                          isLast: true,
+                          onTap: () => Get.toNamed(AppRoutes.adminWishlist),
+                        ),
+                      ],
+                    ),
+                  ],
+
+                  const SizedBox(height: 22),
+
+                  // ── Section 4: App Preferences & Support ────────────────
+                  _buildSectionHeader('PREFERENCES & SUPPORT', ts),
+                  const SizedBox(height: 8),
+                  _MenuGroupCard(
+                    dark: dark,
+                    children: [
+                      // Theme Switch Tile
+                      _ThemeToggleTile(dark: dark),
+                      _MenuItemTile(
+                        icon: Icons.support_agent_rounded,
+                        iconColor: const Color(0xFF06B6D4),
+                        iconBg: const Color(0xFF06B6D4).withOpacity(dark ? 0.2 : 0.1),
+                        title: 'Help & Support',
+                        subtitle: 'Hotline, WhatsApp, query tickets & FAQs',
+                        dark: dark,
+                        onTap: () => Get.to(() => const HelpSupportView()),
+                      ),
+                      _MenuItemTile(
+                        icon: Icons.gavel_rounded,
+                        iconColor: const Color(0xFF64748B),
+                        iconBg: const Color(0xFF64748B).withOpacity(dark ? 0.2 : 0.1),
+                        title: 'Legal & Policies',
+                        subtitle: 'Investor Agreement, Privacy Policy, Terms & Refund',
+                        dark: dark,
+                        isLast: true,
+                        onTap: () => _showLegalPoliciesModal(context, dark),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // ── Sign Out Action ─────────────────────────────────────
+                  _SignOutButton(dark: dark),
+
+                  const SizedBox(height: 24),
+
+                  // ── Brand & Security Footer ─────────────────────────────
+                  Center(
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.verified_outlined,
+                              size: 13,
+                              color: Color(0xFF10B981),
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              'VikaDrx Platform • SEBI & RERA Compliant',
+                              style: TextStyle(
+                                color: ts,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Version 1.0.4 • 256-Bit Bank Grade Encryption',
+                          style: TextStyle(
+                            color: ts.withOpacity(0.7),
+                            fontSize: 10,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       );
     });
   }
-}
 
-// ═════════════════════════════════════════════════════════════════════════════
-// ─── HERO SECTION ─────────────────────────────────────────────────────────────
-// ═════════════════════════════════════════════════════════════════════════════
-class _HeroSection extends StatefulWidget {
-  const _HeroSection({required this.user, required this.dark});
-  final dynamic user;
-  final bool dark;
-  @override
-  State<_HeroSection> createState() => _HeroSectionState();
-}
-
-class _HeroSectionState extends State<_HeroSection>
-    with TickerProviderStateMixin {
-  late final AnimationController _orbCtrl;
-  late final AnimationController _pulseCtrl;
-  late final Animation<double> _orbAnim;
-  late final Animation<double> _pulseAnim;
-  late final AnimationController _entryCtrl;
-  late final Animation<double> _entryFade;
-  late final Animation<Offset> _entrySlide;
-
-  @override
-  void initState() {
-    super.initState();
-    _orbCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 6),
-    )..repeat(reverse: true);
-    _pulseCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
-    _entryCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 700),
-    );
-    _orbAnim = CurvedAnimation(parent: _orbCtrl, curve: Curves.easeInOut);
-    _pulseAnim = CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut);
-    _entryFade = CurvedAnimation(parent: _entryCtrl, curve: Curves.easeOut);
-    _entrySlide = Tween(
-      begin: const Offset(0, 0.06),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _entryCtrl, curve: Curves.easeOutCubic));
-    _entryCtrl.forward();
-  }
-
-  @override
-  void dispose() {
-    _orbCtrl.dispose();
-    _pulseCtrl.dispose();
-    _entryCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final dark = widget.dark;
-    final initial =
-        (widget.user?.name?.isNotEmpty == true ? widget.user!.name[0] : '?')
-            .toUpperCase();
-    final name = widget.user?.name ?? 'Guest';
-    final email = widget.user?.email ?? '';
-    final size = MediaQuery.sizeOf(context);
-
-    return FadeTransition(
-      opacity: _entryFade,
-      child: SlideTransition(
-        position: _entrySlide,
-        child: Container(
-          width: double.infinity,
-          height: 230,
-          child: Stack(
-            clipBehavior: Clip.none,
+  // ── Top Header Bar ────────────────────────────────────────────────────────
+  Widget _buildTopHeader(BuildContext context, bool dark, Color tp, Color ts, Color border) {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Base gradient bg ──
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: dark
-                        ? [
-                            const Color(0xFF0A0F1E),
-                            const Color(0xFF0F1829),
-                            const Color(0xFF0A0F1E),
-                          ]
-                        : [
-                            const Color(0xFF1A2340),
-                            const Color(0xFF243058),
-                            const Color(0xFF1A2340),
-                          ],
-                  ),
+              Text(
+                'My Profile',
+                style: TextStyle(
+                  color: tp,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.5,
                 ),
               ),
-
-              // ── Animated orb 1 ──
-              AnimatedBuilder(
-                animation: _orbAnim,
-                builder: (_, __) => Positioned(
-                  top: -40 + _orbAnim.value * 30,
-                  right: -30 + _orbAnim.value * 20,
-                  child: Container(
-                    width: 220,
-                    height: 220,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: RadialGradient(
-                        colors: [
-                          AppColors.accent.withOpacity(dark ? 0.20 : 0.15),
-                          Colors.transparent,
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              // ── Animated orb 2 ──
-              AnimatedBuilder(
-                animation: _orbAnim,
-                builder: (_, __) => Positioned(
-                  bottom: 20 - _orbAnim.value * 15,
-                  left: -50 + _orbAnim.value * 20,
-                  child: Container(
-                    width: 180,
-                    height: 180,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: RadialGradient(
-                        colors: [
-                          const Color(
-                            0xFF3B82F6,
-                          ).withOpacity(dark ? 0.15 : 0.10),
-                          Colors.transparent,
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              // ── Grid lines (3D depth feel) ──
-              CustomPaint(
-                size: Size(size.width, 320),
-                painter: _GridPainter(dark: dark),
-              ),
-
-              // ── Glassmorphism card ──
-              Positioned.fill(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(32),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(dark ? 0.05 : 0.08),
-                          borderRadius: BorderRadius.circular(32),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(dark ? 0.08 : 0.15),
-                            width: 1,
-                          ),
-                        ),
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Top bar
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'My Profile',
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.5),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: 2,
-                                  ),
-                                ),
-                                _GoldBadge(
-                                  label: (widget.user?.role ?? 'USER')
-                                      .toUpperCase(),
-                                ),
-                              ],
-                            ),
-                            const Spacer(),
-
-                            // Avatar row
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                _HolographicAvatar(
-                                  initial: initial,
-                                  pulseAnim: _pulseAnim,
-                                  dark: dark,
-                                ),
-                                const SizedBox(width: 18),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        name,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 22,
-                                          fontWeight: FontWeight.w800,
-                                          letterSpacing: -0.4,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        email,
-                                        style: TextStyle(
-                                          color: Colors.white.withOpacity(0.5),
-                                          fontSize: 12,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 10),
-                                      _StatusPill(),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              // ── Bottom overlap fade ──
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: 60,
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        (dark
-                            ? const Color(0xFF060B16)
-                            : const Color(0xFFF0F4FF)),
-                      ],
-                    ),
-                  ),
-                ),
+              const SizedBox(height: 2),
+              Text(
+                'Manage identity, investments & security',
+                style: TextStyle(color: ts, fontSize: 12),
               ),
             ],
           ),
         ),
+        // Quick Security button
+        GestureDetector(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            Get.toNamed(AppRoutes.security);
+          },
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: dark ? const Color(0xFF0E1626) : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: border),
+            ),
+            child: Icon(
+              Icons.shield_outlined,
+              color: ts,
+              size: 20,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        // Quick Theme Toggle button
+        GestureDetector(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            ThemeController.to.toggle();
+          },
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: dark ? const Color(0xFF0E1626) : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: border),
+            ),
+            child: Icon(
+              dark ? Icons.dark_mode_rounded : Icons.wb_sunny_rounded,
+              color: dark ? const Color(0xFF60A5FA) : const Color(0xFFF59E0B),
+              size: 19,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSectionHeader(String title, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Text(
+        title,
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 1.1,
+        ),
       ),
     );
   }
-}
 
-// ─── Grid painter (depth lines) ───────────────────────────────────────────────
-class _GridPainter extends CustomPainter {
-  const _GridPainter({required this.dark});
-  final bool dark;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withOpacity(dark ? 0.03 : 0.04)
-      ..strokeWidth = 1;
-    const step = 40.0;
-    for (double x = 0; x < size.width; x += step) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-    for (double y = 0; y < size.height; y += step) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+  void _navigateToTab(int index) {
+    HapticFeedback.selectionClick();
+    if (Get.isRegistered<MainShellController>()) {
+      Get.find<MainShellController>().changeTab(index);
     }
   }
 
-  @override
-  bool shouldRepaint(_) => false;
-}
+  String _getKycBadgeText(String? status) {
+    final s = (status ?? 'pending').toLowerCase();
+    if (s == 'approved' || s == 'verified') return 'Verified ✓';
+    if (s == 'in_review' || s == 'submitted') return 'Under Review';
+    if (s == 'rejected') return 'Rejected';
+    return 'Pending';
+  }
 
-// ─── Gold Badge ───────────────────────────────────────────────────────────────
-class _GoldBadge extends StatelessWidget {
-  const _GoldBadge({required this.label});
-  final String label;
+  Color _getKycBadgeColor(String? status) {
+    final s = (status ?? 'pending').toLowerCase();
+    if (s == 'approved' || s == 'verified') return const Color(0xFF10B981);
+    if (s == 'in_review' || s == 'submitted') return const Color(0xFFF59E0B);
+    if (s == 'rejected') return const Color(0xFFEF4444);
+    return const Color(0xFF6366F1);
+  }
 
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-    decoration: BoxDecoration(
-      gradient: const LinearGradient(
-        colors: [DarkColors.goldDark, DarkColors.goldLight],
-      ),
-      borderRadius: BorderRadius.circular(20),
-      boxShadow: [
-        BoxShadow(
-          color: DarkColors.goldLight.withOpacity(0.5),
-          blurRadius: 12,
-          offset: const Offset(0, 4),
+  // ── Modal: Account & Referral Details ─────────────────────────────────────
+  void _showAccountDetailsModal(BuildContext context, dynamic user, bool dark) {
+    final bg = dark ? const Color(0xFF0E1626) : Colors.white;
+    final tp = dark ? const Color(0xFFEDF0FF) : const Color(0xFF0F172A);
+    final ts = dark ? const Color(0xFF8A95B0) : const Color(0xFF64748B);
+    final border = dark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0);
+
+    final refCode = (user?.referralCode != null && user!.referralCode!.isNotEmpty)
+        ? user!.referralCode!
+        : 'VIKA${user?.id?.toString().substring(0, 6).toUpperCase() ?? "DRX"}';
+
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          border: dark ? const Border(top: BorderSide(color: Color(0xFF1E293B))) : null,
         ),
-      ],
-    ),
-    child: Text(
-      label,
-      style: const TextStyle(
-        color: Colors.black,
-        fontSize: 9,
-        fontWeight: FontWeight.w900,
-        letterSpacing: 1.5,
-      ),
-    ),
-  );
-}
-
-// ─── Status Pill ─────────────────────────────────────────────────────────────
-class _StatusPill extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-    decoration: BoxDecoration(
-      color: const Color(0xFF2ecc71).withOpacity(0.15),
-      borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: const Color(0xFF2ecc71).withOpacity(0.4)),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 6,
-          height: 6,
-          decoration: const BoxDecoration(
-            color: Color(0xFF2ecc71),
-            shape: BoxShape.circle,
-          ),
-        ),
-        const SizedBox(width: 5),
-        const Text(
-          'Active Investor',
-          style: TextStyle(
-            color: Color(0xFF2ecc71),
-            fontSize: 10,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-// ─── Holographic Avatar ───────────────────────────────────────────────────────
-class _HolographicAvatar extends StatelessWidget {
-  const _HolographicAvatar({
-    required this.initial,
-    required this.pulseAnim,
-    required this.dark,
-  });
-  final String initial;
-  final Animation<double> pulseAnim;
-  final bool dark;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: pulseAnim,
-      builder: (_, __) => SizedBox(
-        width: 82,
-        height: 82,
-        child: Stack(
-          alignment: Alignment.center,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Outer pulse ring
-            Container(
-              width: 82 + pulseAnim.value * 8,
-              height: 82 + pulseAnim.value * 8,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: AppColors.accent.withOpacity(
-                    0.15 + pulseAnim.value * 0.1,
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6366F1).withOpacity(dark ? 0.2 : 0.1),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  width: 1,
+                  child: const Icon(Icons.badge_rounded, color: Color(0xFF6366F1), size: 20),
                 ),
-              ),
-            ),
-            // Mid ring
-            Container(
-              width: 74,
-              height: 74,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: SweepGradient(
-                  colors: [
-                    DarkColors.goldDark,
-                    AppColors.accent,
-                    const Color(0xFF3B82F6),
-                    DarkColors.goldLight,
-                    DarkColors.goldDark,
-                  ],
-                  transform: GradientRotation(pulseAnim.value * 0.5),
+                const SizedBox(width: 12),
+                Text(
+                  'Account & Investor Details',
+                  style: TextStyle(
+                    color: tp,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-              ),
+              ],
             ),
-            // Inner dark ring
+            const SizedBox(height: 18),
+            _buildDetailRow('Full Name', user?.name ?? '—', tp, ts),
+            _buildDetailRow('Email Address', user?.email ?? '—', tp, ts),
+            _buildDetailRow('Phone Number', user?.phone ?? '—', tp, ts),
+            _buildDetailRow('Investor Role', (user?.role ?? 'User').toUpperCase(), tp, ts),
+            _buildDetailRow('Investor ID', user?.id ?? '—', tp, ts),
+            const SizedBox(height: 14),
+            // Referral Box
             Container(
-              width: 68,
-              height: 68,
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: dark ? const Color(0xFF0A0F1E) : const Color(0xFF1A2340),
+                color: const Color(0xFF2563EB).withOpacity(dark ? 0.15 : 0.06),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFF2563EB).withOpacity(0.3)),
               ),
-            ),
-            // Avatar surface with 3D sheen
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  center: const Alignment(-0.5, -0.5),
-                  colors: dark
-                      ? [const Color(0xFF1A2340), const Color(0xFF0F1420)]
-                      : [const Color(0xFF243058), const Color(0xFF1A2340)],
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.accent.withOpacity(
-                      0.3 + pulseAnim.value * 0.2,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Your Referral Code',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF2563EB),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          refCode,
+                          style: TextStyle(
+                            color: tp,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                      ],
                     ),
-                    blurRadius: 16,
-                    spreadRadius: 2,
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      Clipboard.setData(ClipboardData(text: refCode));
+                      HapticFeedback.mediumImpact();
+                      Get.back();
+                      Get.snackbar(
+                        'Copied! 📋',
+                        'Referral code copied to clipboard',
+                        snackPosition: SnackPosition.BOTTOM,
+                        backgroundColor: const Color(0xFF2563EB),
+                        colorText: Colors.white,
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF2563EB).withOpacity(0.35),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.copy_rounded, size: 14, color: Colors.white),
+                          SizedBox(width: 5),
+                          Text(
+                            'Copy',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
-              child: Center(
-                child: Text(
-                  initial,
-                  style: TextStyle(
-                    color: AppColors.accent,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900,
-                    shadows: [
-                      Shadow(
-                        color: AppColors.accent.withOpacity(0.8),
-                        blurRadius: 12,
-                      ),
-                    ],
-                  ),
+            ),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value, Color tp, Color ts) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(color: ts, fontSize: 13)),
+          const SizedBox(width: 12),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: tp,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Modal: Legal Policies Sheet ───────────────────────────────────────────
+  void _showLegalPoliciesModal(BuildContext context, bool dark) {
+    final bg = dark ? const Color(0xFF0E1626) : Colors.white;
+    final tp = dark ? const Color(0xFFEDF0FF) : const Color(0xFF0F172A);
+    final border = dark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0);
+
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          border: dark ? const Border(top: BorderSide(color: Color(0xFF1E293B))) : null,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: border,
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6366F1).withOpacity(dark ? 0.2 : 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.gavel_rounded, color: Color(0xFF6366F1), size: 20),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Legal Agreements & Policies',
+                  style: TextStyle(
+                    color: tp,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            _PolicyModalItem(
+              icon: Icons.handshake_outlined,
+              title: 'Investor Agreement',
+              subtitle: 'SPV & Framework terms of investment',
+              dark: dark,
+              onTap: () {
+                Get.back();
+                Get.to(() => const PolicyDetailView(
+                      slug: 'investor-agreement',
+                      defaultTitle: 'Investor Agreement',
+                    ));
+              },
+            ),
+            _PolicyModalItem(
+              icon: Icons.privacy_tip_outlined,
+              title: 'Privacy Policy',
+              subtitle: 'DPDP Act & data protection guidelines',
+              dark: dark,
+              onTap: () {
+                Get.back();
+                Get.to(() => const PolicyDetailView(
+                      slug: 'privacy-policy',
+                      defaultTitle: 'Privacy Policy',
+                    ));
+              },
+            ),
+            _PolicyModalItem(
+              icon: Icons.article_outlined,
+              title: 'Terms & Conditions',
+              subtitle: 'Platform usage & governance terms',
+              dark: dark,
+              onTap: () {
+                Get.back();
+                Get.to(() => const PolicyDetailView(
+                      slug: 'terms-conditions',
+                      defaultTitle: 'Terms & Conditions',
+                    ));
+              },
+            ),
+            _PolicyModalItem(
+              icon: Icons.assignment_return_outlined,
+              title: 'Refund & Cancellation Policy',
+              subtitle: 'Escrow cooling-off & capital refund policy',
+              dark: dark,
+              isLast: true,
+              onTap: () {
+                Get.back();
+                Get.to(() => const PolicyDetailView(
+                      slug: 'refund-cancellation',
+                      defaultTitle: 'Refund & Cancellation Policy',
+                    ));
+              },
             ),
           ],
         ),
@@ -509,121 +696,332 @@ class _HolographicAvatar extends StatelessWidget {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// ─── STATS STRIP ──────────────────────────────────────────────────────────────
+// ─── EXECUTIVE USER IDENTITY CARD ─────────────────────────────────────────────
 // ═════════════════════════════════════════════════════════════════════════════
-void _openProperties() {
-  HapticFeedback.lightImpact();
-  if (Get.isRegistered<MainShellController>()) {
-    Get.find<MainShellController>().changeTab(1);
-  } else {
-    Get.toNamed(AppRoutes.properties);
-  }
-}
-
-void _openMyBricks() {
-  HapticFeedback.lightImpact();
-  if (Get.isRegistered<MainShellController>()) {
-    Get.find<MainShellController>().changeTab(2);
-  } else {
-    Get.toNamed(AppRoutes.investments);
-  }
-}
-
-void _openSavings() {
-  HapticFeedback.lightImpact();
-  if (Get.isRegistered<MainShellController>()) {
-    Get.find<MainShellController>().changeTab(3);
-  } else {
-    Get.toNamed(AppRoutes.myPlans);
-  }
-}
-
-class _StatsStrip extends StatelessWidget {
-  const _StatsStrip({required this.dark});
+class _UserIdentityCard extends StatelessWidget {
+  const _UserIdentityCard({required this.user, required this.dark});
+  final dynamic user;
   final bool dark;
 
   @override
   Widget build(BuildContext context) {
+    final tp = dark ? const Color(0xFFEDF0FF) : const Color(0xFF0F172A);
+    final ts = dark ? const Color(0xFF8A95B0) : const Color(0xFF64748B);
+    final border = dark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0);
+
+    final initial = (user?.name?.isNotEmpty == true ? user!.name[0] : 'U').toUpperCase();
+    final name = user?.name ?? 'Valued Investor';
+    final email = user?.email ?? '';
+    final phone = user?.phone ?? '';
+    final role = (user?.role ?? 'INVESTOR').toUpperCase();
+    final kyc = (user?.kycStatus ?? 'pending').toLowerCase();
+    final isKycVerified = kyc == 'approved' || kyc == 'verified';
+
+    return Container(
+      decoration: BoxDecoration(
+        color: dark ? const Color(0xFF0E1626) : Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: border, width: 1.1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(dark ? 0.35 : 0.05),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Top Profile Row
+          Padding(
+            padding: const EdgeInsets.all(18),
+            child: Row(
+              children: [
+                // Avatar with gradient ring
+                Container(
+                  width: 62,
+                  height: 62,
+                  padding: const EdgeInsets.all(2.5),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF2563EB), Color(0xFF8B5CF6)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF2563EB).withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: dark ? const Color(0xFF0E1626) : Colors.white,
+                    ),
+                    child: Center(
+                      child: Text(
+                        initial,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF2563EB),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+
+                // Name & Info Column
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: tp,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.3,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2563EB).withOpacity(dark ? 0.2 : 0.1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              role,
+                              style: const TextStyle(
+                                color: Color(0xFF2563EB),
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                      if (email.isNotEmpty)
+                        Text(
+                          email,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: ts, fontSize: 12),
+                        ),
+                      if (phone.isNotEmpty) ...[
+                        const SizedBox(height: 1),
+                        Text(
+                          phone,
+                          style: TextStyle(color: ts, fontSize: 11.5, fontWeight: FontWeight.w500),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // KYC Status Banner Bar
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
+            decoration: BoxDecoration(
+              color: isKycVerified
+                  ? const Color(0xFF10B981).withOpacity(dark ? 0.15 : 0.08)
+                  : const Color(0xFF2563EB).withOpacity(dark ? 0.15 : 0.07),
+              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(21)),
+              border: Border(
+                top: BorderSide(
+                  color: isKycVerified
+                      ? const Color(0xFF10B981).withOpacity(0.2)
+                      : const Color(0xFF2563EB).withOpacity(0.2),
+                ),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  isKycVerified ? Icons.check_circle_rounded : Icons.info_outline_rounded,
+                  size: 16,
+                  color: isKycVerified ? const Color(0xFF10B981) : const Color(0xFF2563EB),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    isKycVerified
+                        ? 'KYC Verified • Full Trading & Direct Buy Active'
+                        : 'Complete KYC to unlock full property deed ownership',
+                    style: TextStyle(
+                      color: isKycVerified ? const Color(0xFF10B981) : const Color(0xFF2563EB),
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 12,
+                  color: isKycVerified ? const Color(0xFF10B981) : const Color(0xFF2563EB),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// ─── PORTFOLIO SNAPSHOT STRIP ────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════════════════════
+class _PortfolioSnapshotBar extends StatelessWidget {
+  const _PortfolioSnapshotBar({required this.dark});
+  final bool dark;
+
+  @override
+  Widget build(BuildContext context) {
+    final tp = dark ? const Color(0xFFEDF0FF) : const Color(0xFF0F172A);
+    final ts = dark ? const Color(0xFF8A95B0) : const Color(0xFF64748B);
+    final border = dark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0);
+
     return Obx(() {
       final invCtrl = Get.isRegistered<InvestmentsController>()
           ? Get.find<InvestmentsController>()
           : null;
       final totalInvested = invCtrl?.totalInvested ?? 0;
-      final propCount = invCtrl?.propertyCount ?? 0;
       final totalBricks = invCtrl?.totalBricks ?? 0;
+      final propCount = invCtrl?.propertyCount ?? 0;
 
       final investedStr = totalInvested > 0
-          ? '₹${totalInvested >= 10000000 ? "${(totalInvested / 10000000).toStringAsFixed(1)}Cr" : (totalInvested >= 100000 ? "${(totalInvested / 100000).toStringAsFixed(1)}L" : totalInvested.toString())}'
+          ? (totalInvested >= 10000000
+              ? '₹${(totalInvested / 10000000).toStringAsFixed(2)} Cr'
+              : (totalInvested >= 100000
+                  ? '₹${(totalInvested / 100000).toStringAsFixed(1)} L'
+                  : '₹$totalInvested'))
           : '₹0';
 
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+      return GestureDetector(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          if (Get.isRegistered<MainShellController>()) {
+            Get.find<MainShellController>().changeTab(2);
+          }
+        },
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            gradient: dark
-                ? const LinearGradient(
-                    colors: [Color(0xFF0F1829), Color(0xFF162035)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                : const LinearGradient(
-                    colors: [Color(0xFF1A2340), Color(0xFF243058)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: AppColors.accent.withOpacity(dark ? 0.2 : 0.15),
-            ),
+            color: dark ? const Color(0xFF0E1626) : Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: border, width: 1.1),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(dark ? 0.5 : 0.25),
-                blurRadius: 24,
-                offset: const Offset(0, 10),
-                spreadRadius: -4,
-              ),
-              BoxShadow(
-                color: AppColors.accent.withOpacity(0.08),
-                blurRadius: 20,
+                color: Colors.black.withOpacity(dark ? 0.3 : 0.04),
+                blurRadius: 14,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
           child: Row(
             children: [
+              // Cell 1: Total Invested
               Expanded(
-                child: _StatCell(
-                  value: investedStr,
-                  label: 'Invested',
-                  icon: Icons.account_balance_wallet_outlined,
-                  onTap: _openMyBricks,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'TOTAL INVESTED',
+                      style: TextStyle(
+                        color: ts,
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      investedStr,
+                      style: TextStyle(
+                        color: tp,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              _VertDivider(),
+              Container(width: 1, height: 28, color: border),
+              const SizedBox(width: 14),
+
+              // Cell 2: Total Bricks
               Expanded(
-                child: _StatCell(
-                  value: '$propCount',
-                  label: 'Properties',
-                  icon: Icons.apartment_outlined,
-                  onTap: _openProperties,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'BRICKS OWNED',
+                      style: TextStyle(
+                        color: ts,
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '$totalBricks Units',
+                      style: TextStyle(
+                        color: tp,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              _VertDivider(),
+              Container(width: 1, height: 28, color: border),
+              const SizedBox(width: 14),
+
+              // Cell 3: Active Deals
               Expanded(
-                child: _StatCell(
-                  value: '$totalBricks',
-                  label: 'Bricks',
-                  icon: Icons.grid_view_rounded,
-                  onTap: _openMyBricks,
-                ),
-              ),
-              _VertDivider(),
-              Expanded(
-                child: _StatCell(
-                  value: '12.8%',
-                  label: 'Target Yield',
-                  icon: Icons.trending_up_rounded,
-                  onTap: _openProperties,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'ACTIVE ASSETS',
+                      style: TextStyle(
+                        color: ts,
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '$propCount Deals',
+                      style: TextStyle(
+                        color: tp,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -634,1076 +1032,389 @@ class _StatsStrip extends StatelessWidget {
   }
 }
 
-class _StatCell extends StatelessWidget {
-  const _StatCell({
-    required this.value,
-    required this.label,
-    required this.icon,
-    this.onTap,
-  });
-  final String value, label;
-  final IconData icon;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final cellWidget = Column(
-      children: [
-        Icon(icon, color: AppColors.accent, size: 16),
-        const SizedBox(height: 6),
-        Text(
-          value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.5),
-            fontSize: 10,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-
-    if (onTap == null) return cellWidget;
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: cellWidget,
-    );
-  }
-}
-
-class _VertDivider extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) => Container(
-    width: 1,
-    height: 36,
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          Colors.transparent,
-          Colors.white.withOpacity(0.12),
-          Colors.transparent,
-        ],
-      ),
-    ),
-  );
-}
-
 // ═════════════════════════════════════════════════════════════════════════════
-// ─── MENU SECTION ─────────────────────────────────────────────────────────────
+// ─── GROUPED MENU CONTAINER ──────────────────────────────────────────────────
 // ═════════════════════════════════════════════════════════════════════════════
-class _MenuSection extends StatelessWidget {
-  const _MenuSection({required this.dark});
+class _MenuGroupCard extends StatelessWidget {
+  const _MenuGroupCard({required this.dark, required this.children});
   final bool dark;
+  final List<Widget> children;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        children: [
-          // Quick action grid (2×2 + 1 extra)
-          Row(
-            children: [
-              Expanded(
-                child: _QuickCard(
-                  icon: Icons.grid_view_rounded,
-                  label: 'My Bricks',
-                  subtitle: 'Portfolio',
-                  color: AppColors.accent,
-                  dark: dark,
-                  onTap: _openMyBricks,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _QuickCard(
-                  icon: Icons.verified_user_outlined,
-                  label: 'KYC',
-                  subtitle: 'Verification',
-                  color: const Color(0xFF3B82F6),
-                  dark: dark,
-                  onTap: () => Get.toNamed(AppRoutes.kyc),
-                ),
-              ),
-            ],
+    final border = dark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0);
+    return Container(
+      decoration: BoxDecoration(
+        color: dark ? const Color(0xFF0E1626) : Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: border, width: 1.1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(dark ? 0.35 : 0.04),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _QuickCard(
-                  icon: Icons.apartment_outlined,
-                  label: 'Properties',
-                  subtitle: 'Browse',
-                  color: const Color(0xFF2ecc71),
-                  dark: dark,
-                  onTap: _openProperties,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _QuickCard(
-                  icon: Icons.savings_outlined,
-                  label: 'Savings',
-                  subtitle: 'My Plans',
-                  color: const Color(0xFFAB47BC),
-                  dark: dark,
-                  onTap: _openSavings,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _QuickCard(
-                  icon: Icons.account_balance_wallet_rounded,
-                  label: 'Wallet',
-                  subtitle: 'Add / manage money',
-                  color: const Color(0xFF3B82F6),
-                  dark: dark,
-                  onTap: () => Get.toNamed(AppRoutes.wallet),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _QuickCard(
-                  icon: Icons.account_balance_rounded,
-                  label: 'Bank Accounts',
-                  subtitle: 'Withdraw setup',
-                  color: const Color(0xFF2ecc71),
-                  dark: dark,
-                  onTap: () => Get.toNamed(AppRoutes.bankAccounts),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          // Transactions — full-width card
-          _QuickCard(
-            icon: Icons.receipt_long_outlined,
-            label: 'Transaction History',
-            subtitle: 'View all receipts & payments',
-            color: const Color(0xFFFF6B35),
-            dark: dark,
-            onTap: () => Get.toNamed(AppRoutes.transactions),
-            wide: true,
-          ),
-          const SizedBox(height: 20),
-
-          // Info tiles
-          _InfoTile(
-            icon: Icons.phone_outlined,
-            label: 'Phone',
-            value: Get.find<AuthController>().user.value?.phone ?? '—',
-            dark: dark,
-          ),
-          const SizedBox(height: 10),
-          _InfoTile(
-            icon: Icons.badge_outlined,
-            label: 'Account Type',
-            value: (Get.find<AuthController>().user.value?.role ?? 'user')
-                .toUpperCase(),
-            dark: dark,
-          ),
-          const SizedBox(height: 10),
-          // Security — PIN & Biometric
-          Obx(() {
-            final hasPin = LockService.to.pinActive.value;
-            return _InfoTile(
-              icon: Icons.security_rounded,
-              label: 'Security',
-              value: hasPin ? '🔒 PIN Active' : 'Not set',
-              dark: dark,
-              onTap: () => Get.toNamed('/security'),
-            );
-          }),
-          // Admin-only analytics entry
-          if ((Get.find<AuthController>().user.value?.role ?? '') ==
-              'admin') ...[
-            const SizedBox(height: 10),
-            GestureDetector(
-              onTap: () => Get.toNamed('/admin/wishlist'),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: dark ? const Color(0xFF0F1829) : Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: const Color(
-                      0xFF3B82F6,
-                    ).withOpacity(dark ? 0.25 : 0.12),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(
-                        0xFF3B82F6,
-                      ).withOpacity(dark ? 0.15 : 0.08),
-                      blurRadius: 14,
-                      offset: const Offset(0, 6),
-                      spreadRadius: -2,
-                    ),
-                    BoxShadow(
-                      color: Colors.black.withOpacity(dark ? 0.4 : 0.06),
-                      blurRadius: 12,
-                      offset: const Offset(0, 5),
-                      spreadRadius: -2,
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF3B82F6), Color(0xFF60A5FA)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(13),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF3B82F6).withOpacity(0.4),
-                            blurRadius: 12,
-                            offset: const Offset(0, 5),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.analytics_outlined,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Wishlist Analytics',
-                            style: TextStyle(
-                              color: dark
-                                  ? const Color(0xFFEDF0FF)
-                                  : const Color(0xFF1A2340),
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'See who saved what properties',
-                            style: TextStyle(
-                              color: dark
-                                  ? const Color(0xFF8A95B0)
-                                  : const Color(0xFF6B7280),
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: const Color(
-                          0xFF3B82F6,
-                        ).withOpacity(dark ? 0.2 : 0.08),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.chevron_right_rounded,
-                        color: Color(0xFF3B82F6),
-                        size: 18,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-          const SizedBox(height: 20),
-
-          const SizedBox(height: 16),
-
-          // ── Help & Support ──────────────────────────────────────────
-          _QuickCard(
-            icon: Icons.support_agent_rounded,
-            label: 'Help & Support',
-            subtitle: 'Hotline, WhatsApp, FAQs & query tickets',
-            color: const Color(0xFF38BDF8),
-            dark: dark,
-            onTap: () => Get.to(() => const HelpSupportView()),
-            wide: true,
-          ),
-          const SizedBox(height: 14),
-
-          // ── Legal Policies & Agreements Group ───────────────────────
-          Container(
-            decoration: BoxDecoration(
-              color: dark ? const Color(0xFF0F1829) : Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: dark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(dark ? 0.35 : 0.04),
-                  blurRadius: 14,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 16, 18, 8),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(7),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF6366F1).withOpacity(dark ? 0.25 : 0.12),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(Icons.gavel_rounded, color: Color(0xFF818CF8), size: 18),
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        'Legal & Policies',
-                        style: TextStyle(
-                          color: dark ? const Color(0xFFEDF0FF) : const Color(0xFF1A2340),
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.2,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(height: 1),
-                _PolicyRowItem(
-                  icon: Icons.handshake_outlined,
-                  title: 'Investor Agreement',
-                  subtitle: 'Framework SPV & LLP Terms',
-                  dark: dark,
-                  onTap: () => Get.to(() => const PolicyDetailView(
-                    slug: 'investor-agreement',
-                    defaultTitle: 'Investor Agreement',
-                  )),
-                ),
-                _PolicyRowItem(
-                  icon: Icons.privacy_tip_outlined,
-                  title: 'Privacy Policy',
-                  subtitle: 'Data protection & security guidelines',
-                  dark: dark,
-                  onTap: () => Get.to(() => const PolicyDetailView(
-                    slug: 'privacy-policy',
-                    defaultTitle: 'Privacy Policy',
-                  )),
-                ),
-                _PolicyRowItem(
-                  icon: Icons.article_outlined,
-                  title: 'Terms & Conditions',
-                  subtitle: 'Platform usage & governance rules',
-                  dark: dark,
-                  onTap: () => Get.to(() => const PolicyDetailView(
-                    slug: 'terms-conditions',
-                    defaultTitle: 'Terms & Conditions',
-                  )),
-                ),
-                _PolicyRowItem(
-                  icon: Icons.assignment_return_outlined,
-                  title: 'Refund & Cancellation Policy',
-                  subtitle: 'Cooling-off & escrow refund rules',
-                  dark: dark,
-                  isLast: true,
-                  onTap: () => Get.to(() => const PolicyDetailView(
-                    slug: 'refund-cancellation',
-                    defaultTitle: 'Refund & Cancellation Policy',
-                  )),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Theme toggle
-          _ThemeCard(dark: dark),
-          const SizedBox(height: 12),
-
-          // Logout
-          _LogoutCard(dark: dark),
         ],
+      ),
+      child: Column(
+        children: children,
       ),
     );
   }
 }
 
-// ─── Quick Card (2×2 grid) ────────────────────────────────────────────────────
-class _QuickCard extends StatefulWidget {
-  const _QuickCard({
+// ═════════════════════════════════════════════════════════════════════════════
+// ─── MENU ITEM TILE ──────────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════════════════════
+class _MenuItemTile extends StatelessWidget {
+  const _MenuItemTile({
     required this.icon,
-    required this.label,
+    required this.iconColor,
+    required this.iconBg,
+    required this.title,
     required this.subtitle,
-    required this.color,
     required this.dark,
     required this.onTap,
-    this.wide = false,
+    this.badgeText,
+    this.badgeColor,
+    this.isLast = false,
   });
+
   final IconData icon;
-  final String label, subtitle;
-  final Color color;
-  final bool dark;
-  final VoidCallback onTap;
-  final bool wide;
-
-  @override
-  State<_QuickCard> createState() => _QuickCardState();
-}
-
-class _QuickCardState extends State<_QuickCard>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-  late final Animation<double> _scale;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 130),
-    );
-    _scale = Tween(
-      begin: 1.0,
-      end: 0.94,
-    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final dark = widget.dark;
-    final cardBg = dark ? const Color(0xFF0F1829) : Colors.white;
-    final textP = dark ? const Color(0xFFEDF0FF) : const Color(0xFF1A2340);
-    final textS = dark ? const Color(0xFF8A95B0) : const Color(0xFF6B7280);
-
-    return GestureDetector(
-      onTapDown: (_) {
-        HapticFeedback.lightImpact();
-        _ctrl.forward();
-      },
-      onTapUp: (_) {
-        _ctrl.reverse();
-        widget.onTap();
-      },
-      onTapCancel: () => _ctrl.reverse(),
-      child: ScaleTransition(
-        scale: _scale,
-        child: Container(
-          height: widget.wide ? 70 : 114,
-          decoration: BoxDecoration(
-            color: cardBg,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(
-              color: widget.color.withOpacity(dark ? 0.2 : 0.08),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(dark ? 0.45 : 0.10),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-                spreadRadius: -4,
-              ),
-              BoxShadow(
-                color: widget.color.withOpacity(dark ? 0.12 : 0.06),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-              ),
-              if (!dark)
-                BoxShadow(
-                  color: Colors.white.withOpacity(0.8),
-                  blurRadius: 4,
-                  offset: const Offset(-2, -2),
-                ),
-            ],
-          ),
-          child: widget.wide
-              // Wide layout: icon + text side by side
-              ? Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 18),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              widget.color,
-                              widget.color.withOpacity(0.7),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: widget.color.withOpacity(0.45),
-                              blurRadius: 12,
-                              offset: const Offset(0, 5),
-                            ),
-                          ],
-                        ),
-                        child: Icon(widget.icon, color: Colors.white, size: 20),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              widget.label,
-                              style: TextStyle(
-                                color: textP,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            Text(
-                              widget.subtitle,
-                              style: TextStyle(color: textS, fontSize: 11),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          color: widget.color.withOpacity(dark ? 0.2 : 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          Icons.arrow_forward_ios_rounded,
-                          color: widget.color,
-                          size: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              : Stack(
-                  children: [
-                    // Colored corner accent
-                    Positioned(
-                      top: -18,
-                      right: -18,
-                      child: Container(
-                        width: 70,
-                        height: 70,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              widget.color.withOpacity(dark ? 0.2 : 0.12),
-                              Colors.transparent,
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(18),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  widget.color,
-                                  widget.color.withOpacity(0.7),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: widget.color.withOpacity(0.45),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 5),
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              widget.icon,
-                              color: Colors.white,
-                              size: 20,
-                            ),
-                          ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                widget.label,
-                                style: TextStyle(
-                                  color: textP,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                              Text(
-                                widget.subtitle,
-                                style: TextStyle(color: textS, fontSize: 11),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    // Arrow
-                    Positioned(
-                      top: 14,
-                      right: 14,
-                      child: Container(
-                        width: 22,
-                        height: 22,
-                        decoration: BoxDecoration(
-                          color: widget.color.withOpacity(dark ? 0.2 : 0.1),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Icon(
-                          Icons.arrow_forward_rounded,
-                          color: widget.color,
-                          size: 13,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Info Tile ────────────────────────────────────────────────────────────────
-class _InfoTile extends StatelessWidget {
-  const _InfoTile({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.dark,
-    this.onTap,
-  });
-  final IconData icon;
-  final String label, value;
-  final bool dark;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final cardBg = dark ? const Color(0xFF0F1829) : Colors.white;
-    final textP = dark ? const Color(0xFFEDF0FF) : const Color(0xFF1A2340);
-    final textS = dark ? const Color(0xFF8A95B0) : const Color(0xFF6B7280);
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-        decoration: BoxDecoration(
-          color: cardBg,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: AppColors.accent.withOpacity(dark ? 0.1 : 0.06),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(dark ? 0.4 : 0.07),
-              blurRadius: 16,
-              offset: const Offset(0, 8),
-              spreadRadius: -3,
-            ),
-            if (!dark)
-              BoxShadow(
-                color: Colors.white.withOpacity(0.8),
-                blurRadius: 4,
-                offset: const Offset(-2, -2),
-              ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: AppColors.accent.withOpacity(dark ? 0.15 : 0.08),
-                borderRadius: BorderRadius.circular(11),
-                border: Border.all(color: AppColors.accent.withOpacity(0.2)),
-              ),
-              child: Icon(icon, color: AppColors.accent, size: 18),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Text(label, style: TextStyle(color: textS, fontSize: 13)),
-            ),
-            Text(
-              value,
-              style: TextStyle(
-                color: textP,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            if (onTap != null) ...[
-              const SizedBox(width: 8),
-              Icon(Icons.chevron_right_rounded, color: textS, size: 18),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Theme Card ───────────────────────────────────────────────────────────────
-class _ThemeCard extends StatelessWidget {
-  const _ThemeCard({required this.dark});
-  final bool dark;
-
-  @override
-  Widget build(BuildContext context) {
-    final cardBg = dark ? const Color(0xFF0F1829) : Colors.white;
-    final textP = dark ? const Color(0xFFEDF0FF) : const Color(0xFF1A2340);
-    final textS = dark ? const Color(0xFF8A95B0) : const Color(0xFF6B7280);
-    final iconColor = dark ? const Color(0xFF64B5F6) : const Color(0xFFFF8F00);
-    final iconBg = dark ? const Color(0xFF1A2B4A) : const Color(0xFFFFF3CD);
-
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        ThemeController.to.toggle();
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-        decoration: BoxDecoration(
-          color: cardBg,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: (dark ? const Color(0xFF64B5F6) : const Color(0xFFFF8F00))
-                .withOpacity(0.2),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(dark ? 0.4 : 0.07),
-              blurRadius: 16,
-              offset: const Offset(0, 8),
-              spreadRadius: -3,
-            ),
-            if (!dark)
-              BoxShadow(
-                color: Colors.white.withOpacity(0.8),
-                blurRadius: 4,
-                offset: const Offset(-2, -2),
-              ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: iconBg,
-                borderRadius: BorderRadius.circular(11),
-                border: Border.all(color: iconColor.withOpacity(0.3)),
-              ),
-              child: Icon(
-                dark ? Icons.dark_mode_rounded : Icons.wb_sunny_rounded,
-                color: iconColor,
-                size: 18,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    dark ? 'Dark Mode' : 'Light Mode',
-                    style: TextStyle(
-                      color: textP,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  Text(
-                    'Tap to switch',
-                    style: TextStyle(color: textS, fontSize: 11),
-                  ),
-                ],
-              ),
-            ),
-            // Toggle pill
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOutCubic,
-              width: 50,
-              height: 28,
-              padding: const EdgeInsets.all(3),
-              decoration: BoxDecoration(
-                gradient: dark
-                    ? const LinearGradient(
-                        colors: [DarkColors.goldDark, DarkColors.goldLight],
-                      )
-                    : LinearGradient(
-                        colors: [Colors.grey.shade300, Colors.grey.shade400],
-                      ),
-                borderRadius: BorderRadius.circular(28),
-                boxShadow: [
-                  BoxShadow(
-                    color: (dark ? AppColors.accent : Colors.grey).withOpacity(
-                      0.4,
-                    ),
-                    blurRadius: 8,
-                  ),
-                ],
-              ),
-              child: AnimatedAlign(
-                duration: const Duration(milliseconds: 260),
-                curve: Curves.easeOutCubic,
-                alignment: dark ? Alignment.centerRight : Alignment.centerLeft,
-                child: Container(
-                  width: 22,
-                  height: 22,
-                  decoration: BoxDecoration(
-                    color: dark ? Colors.black : Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.25),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    dark ? Icons.dark_mode_rounded : Icons.wb_sunny_rounded,
-                    color: dark
-                        ? DarkColors.goldLight
-                        : const Color(0xFFFF8F00),
-                    size: 12,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Logout Card ──────────────────────────────────────────────────────────────
-class _LogoutCard extends StatefulWidget {
-  const _LogoutCard({required this.dark});
-  final bool dark;
-  @override
-  State<_LogoutCard> createState() => _LogoutCardState();
-}
-
-class _LogoutCardState extends State<_LogoutCard>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-  late final Animation<double> _scale;
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 130),
-    );
-    _scale = Tween(
-      begin: 1.0,
-      end: 0.96,
-    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) {
-        HapticFeedback.mediumImpact();
-        _ctrl.forward();
-      },
-      onTapUp: (_) {
-        _ctrl.reverse();
-        Get.find<AuthController>().logout();
-      },
-      onTapCancel: () => _ctrl.reverse(),
-      child: ScaleTransition(
-        scale: _scale,
-        child: Container(
-          height: 56,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                const Color(0xFFE53E3E).withOpacity(widget.dark ? 0.15 : 0.08),
-                const Color(0xFFFC8181).withOpacity(widget.dark ? 0.08 : 0.04),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: const Color(0xFFE53E3E).withOpacity(0.35),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(
-                  0xFFE53E3E,
-                ).withOpacity(widget.dark ? 0.2 : 0.08),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-                spreadRadius: -2,
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE53E3E).withOpacity(0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.logout_rounded,
-                  color: Color(0xFFE53E3E),
-                  size: 16,
-                ),
-              ),
-              const SizedBox(width: 10),
-              const Text(
-                'Sign Out',
-                style: TextStyle(
-                  color: Color(0xFFE53E3E),
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Policy Row Item ─────────────────────────────────────────────────────────
-class _PolicyRowItem extends StatelessWidget {
-  final IconData icon;
+  final Color iconColor;
+  final Color iconBg;
   final String title;
   final String subtitle;
   final bool dark;
-  final bool isLast;
   final VoidCallback onTap;
+  final String? badgeText;
+  final Color? badgeColor;
+  final bool isLast;
 
-  const _PolicyRowItem({
+  @override
+  Widget build(BuildContext context) {
+    final tp = dark ? const Color(0xFFEDF0FF) : const Color(0xFF0F172A);
+    final ts = dark ? const Color(0xFF8A95B0) : const Color(0xFF64748B);
+    final border = dark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9);
+
+    return InkWell(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      borderRadius: BorderRadius.circular(18),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                // Icon Squircle
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: iconBg,
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: Icon(icon, color: iconColor, size: 19),
+                ),
+                const SizedBox(width: 14),
+
+                // Title & Subtitle
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          color: tp,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 1.5),
+                      Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: ts, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Optional Badge
+                if (badgeText != null) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: (badgeColor ?? const Color(0xFF2563EB)).withOpacity(dark ? 0.2 : 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      badgeText!,
+                      style: TextStyle(
+                        color: badgeColor ?? const Color(0xFF2563EB),
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                ],
+
+                // Chevron
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: ts.withOpacity(0.6),
+                  size: 20,
+                ),
+              ],
+            ),
+          ),
+          if (!isLast)
+            Divider(
+              height: 1,
+              indent: 68,
+              endIndent: 16,
+              color: border,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// ─── THEME TOGGLE TILE ───────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════════════════════
+class _ThemeToggleTile extends StatelessWidget {
+  const _ThemeToggleTile({required this.dark});
+  final bool dark;
+
+  @override
+  Widget build(BuildContext context) {
+    final tp = dark ? const Color(0xFFEDF0FF) : const Color(0xFF0F172A);
+    final ts = dark ? const Color(0xFF8A95B0) : const Color(0xFF64748B);
+    final border = dark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9);
+
+    final iconColor = dark ? const Color(0xFF60A5FA) : const Color(0xFFF59E0B);
+    final iconBg = dark
+        ? const Color(0xFF60A5FA).withOpacity(0.2)
+        : const Color(0xFFF59E0B).withOpacity(0.12);
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: Icon(
+                  dark ? Icons.dark_mode_rounded : Icons.wb_sunny_rounded,
+                  color: iconColor,
+                  size: 19,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      dark ? 'Dark Mode' : 'Light Mode',
+                      style: TextStyle(
+                        color: tp,
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 1.5),
+                    Text(
+                      dark ? 'Sleek midnight palette active' : 'Bright daylight palette active',
+                      style: TextStyle(color: ts, fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+              Switch.adaptive(
+                value: dark,
+                activeColor: const Color(0xFF2563EB),
+                onChanged: (_) {
+                  HapticFeedback.lightImpact();
+                  ThemeController.to.toggle();
+                },
+              ),
+            ],
+          ),
+        ),
+        Divider(
+          height: 1,
+          indent: 68,
+          endIndent: 16,
+          color: border,
+        ),
+      ],
+    );
+  }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// ─── POLICY MODAL ITEM ───────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════════════════════
+class _PolicyModalItem extends StatelessWidget {
+  const _PolicyModalItem({
     required this.icon,
     required this.title,
     required this.subtitle,
     required this.dark,
-    this.isLast = false,
     required this.onTap,
+    this.isLast = false,
   });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool dark;
+  final VoidCallback onTap;
+  final bool isLast;
 
   @override
   Widget build(BuildContext context) {
+    final tp = dark ? const Color(0xFFEDF0FF) : const Color(0xFF0F172A);
+    final ts = dark ? const Color(0xFF8A95B0) : const Color(0xFF64748B);
+    final border = dark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0);
+
     return InkWell(
       onTap: onTap,
-      borderRadius: isLast
-          ? const BorderRadius.vertical(bottom: Radius.circular(20))
-          : BorderRadius.zero,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Row(
+              children: [
+                Icon(icon, color: const Color(0xFF2563EB), size: 20),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          color: tp,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(subtitle, style: TextStyle(color: ts, fontSize: 11.5)),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right_rounded, color: ts, size: 20),
+              ],
+            ),
+          ),
+          if (!isLast) Divider(color: border, height: 1),
+        ],
+      ),
+    );
+  }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// ─── SIGN OUT ACTION BUTTON ──────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════════════════════
+class _SignOutButton extends StatelessWidget {
+  const _SignOutButton({required this.dark});
+  final bool dark;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _confirmSignOut(context),
+      child: Container(
+        height: 52,
+        decoration: BoxDecoration(
+          color: const Color(0xFFEF4444).withOpacity(dark ? 0.15 : 0.08),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFFEF4444).withOpacity(0.3),
+            width: 1.1,
+          ),
+        ),
         child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: dark ? const Color(0xFF162032) : const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(10),
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Icon(Icons.logout_rounded, color: Color(0xFFEF4444), size: 18),
+            SizedBox(width: 8),
+            Text(
+              'Sign Out of Account',
+              style: TextStyle(
+                color: Color(0xFFEF4444),
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
               ),
-              child: Icon(icon, color: dark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), size: 18),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: dark ? const Color(0xFFEDF0FF) : const Color(0xFF1A2340),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      color: dark ? const Color(0xFF8A95B0) : const Color(0xFF6B7280),
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              Icons.chevron_right_rounded,
-              color: dark ? const Color(0xFF475569) : const Color(0xFFCBD5E1),
-              size: 20,
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _confirmSignOut(BuildContext context) {
+    HapticFeedback.mediumImpact();
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: dark ? const Color(0xFF0E1626) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Sign Out?',
+          style: TextStyle(
+            color: dark ? const Color(0xFFEDF0FF) : const Color(0xFF0F172A),
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        content: Text(
+          'Are you sure you want to sign out of your VikaDrx account on this device?',
+          style: TextStyle(
+            color: dark ? const Color(0xFF8A95B0) : const Color(0xFF64748B),
+            fontSize: 13,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: dark ? const Color(0xFF8A95B0) : const Color(0xFF64748B),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Get.back();
+              Get.find<AuthController>().logout();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEF4444),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              elevation: 0,
+            ),
+            child: const Text('Sign Out', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+          ),
+        ],
       ),
     );
   }

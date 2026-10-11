@@ -140,16 +140,24 @@ class BusinessModel {
   });
 
   factory BusinessModel.fromJson(Map<String, dynamic> json) {
-    // Images parsing
+    // Images & Cover parsing
+    final rawCover = json['coverImage'] as String?;
     final rawImages = json['images'];
     final List<BusinessImage> imgList = [];
     if (rawImages is List) {
       for (final item in rawImages) {
         if (item is Map<String, dynamic>) {
           imgList.add(BusinessImage.fromJson(item));
-        } else if (item is String && item.isNotEmpty) {
-          imgList.add(BusinessImage(url: item));
+        } else if (item is String && item.trim().isNotEmpty) {
+          imgList.add(BusinessImage(url: item.trim()));
         }
+      }
+    }
+    if (rawCover != null && rawCover.trim().isNotEmpty) {
+      final coverTrim = rawCover.trim();
+      final exists = imgList.any((img) => img.url.trim() == coverTrim);
+      if (!exists) {
+        imgList.insert(0, BusinessImage(url: coverTrim, isCover: true));
       }
     }
 
@@ -221,6 +229,16 @@ class BusinessModel {
   };
 
   // ── Helper Getters ──
+  List<String> get allImageUrls {
+    final Set<String> urls = {};
+    if (coverImage.trim().isNotEmpty) urls.add(coverImage.trim());
+    for (final img in images) {
+      if (img.url.trim().isNotEmpty) urls.add(img.url.trim());
+    }
+    return urls.isNotEmpty ? urls.toList() : [coverImage];
+  }
+
+  int get photosCount => allImageUrls.length;
   String get coverImage {
     if (images.isNotEmpty) {
       final cover = images.firstWhere((img) => img.isCover, orElse: () => images.first);

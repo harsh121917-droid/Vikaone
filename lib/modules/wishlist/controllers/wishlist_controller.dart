@@ -27,7 +27,7 @@ class WishlistController extends GetxController {
       isLoading.value = true;
       final list = await _repo.getWishlist();
       properties.value = list;
-      savedIds.value = list.map((p) => p.id).toSet();
+      savedIds.assignAll(list.map((p) => p.id).toSet());
     } on DioException catch (e) {
       Get.snackbar(
         'Error',

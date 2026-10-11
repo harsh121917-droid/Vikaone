@@ -32,6 +32,9 @@ import '../modules/wallet/views/wallet_view.dart';
 import '../modules/wallet/views/bank_accounts_view.dart';
 import '../modules/wallet/views/add_bank_account_view.dart';
 import '../modules/wallet/controllers/wallet_controller.dart';
+import '../modules/transactions/controllers/transaction_controller.dart';
+import '../modules/wishlist/controllers/wishlist_controller.dart';
+import '../data/repositories/wishlist_repository.dart';
 
 abstract class AppRoutes {
   static const login          = '/login';
@@ -73,9 +76,14 @@ final appPages = [
   GetPage(name: AppRoutes.propertyDetail, page: () => const PropertyDetailView(),     binding: PropertyDetailBinding()),
   GetPage(name: AppRoutes.kyc,            page: () => const KycView(),               binding: KycBinding()),
   GetPage(name: AppRoutes.myPlans,        page: () => const MyPlansView()),
-  GetPage(name: AppRoutes.wishlist,       page: () => const WishlistView()),
+  GetPage(name: AppRoutes.wishlist,       page: () => const WishlistView(), binding: BindingsBuilder(() {
+    if (!Get.isRegistered<WishlistRepository>()) Get.lazyPut<WishlistRepository>(() => WishlistRepository());
+    if (!Get.isRegistered<WishlistController>()) Get.put(WishlistController());
+  })),
   GetPage(name: AppRoutes.adminWishlist,  page: () => const AdminWishlistView()),
-  GetPage(name: AppRoutes.transactions,   page: () => const TransactionHistoryView()),
+  GetPage(name: AppRoutes.transactions,   page: () => const TransactionHistoryView(), binding: BindingsBuilder(() {
+    if (!Get.isRegistered<TransactionController>()) Get.put(TransactionController());
+  })),
   GetPage(name: AppRoutes.passcodeSetup,  page: () => const PasscodeSetupView()),
   GetPage(name: AppRoutes.lockScreen,     page: () => const LockScreenView()),
   GetPage(name: AppRoutes.security,       page: () => const SecuritySettingsView()),

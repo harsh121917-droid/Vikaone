@@ -14,29 +14,29 @@ class BusinessCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final dark = ThemeController.to.isDark.value;
     final cardBg = dark ? const Color(0xFF0F172A) : Colors.white;
-    final borderColor = dark ? Colors.white.withOpacity(0.08) : const Color(0xFFE2E8F0);
     final titleColor = dark ? Colors.white : const Color(0xFF0F172A);
     final subColor = dark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final borderColor = dark ? Colors.white.withOpacity(0.08) : const Color(0xFFE2E8F0);
+    const primaryBlue = Color(0xFF2563EB);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
       decoration: BoxDecoration(
         color: cardBg,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: borderColor, width: 1.2),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: borderColor),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(dark ? 0.4 : 0.06),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: Colors.black.withOpacity(dark ? 0.25 : 0.04),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(22),
         child: InkWell(
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(20),
           onTap: () {
             HapticFeedback.lightImpact();
             Get.to(() => BusinessDetailView(business: business));
@@ -44,72 +44,75 @@ class BusinessCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── 1. Image Banner with Category Badge ──
+              // ── 1. Image Banner with Category & Photo Badges ──
               Stack(
                 children: [
                   ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(21)),
-                    child: AspectRatio(
-                      aspectRatio: 16 / 9,
-                      child: Image.network(
-                        business.coverImage,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          color: const Color(0xFF1E293B),
-                          child: Center(
-                            child: Icon(business.categoryIcon, color: business.categoryColor, size: 48),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                    child: Image.network(
+                      business.coverImage,
+                      height: 180,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, err, trace) => Container(
+                        height: 180,
+                        color: dark ? const Color(0xFF1E293B) : const Color(0xFFCBD5E1),
+                        child: Center(
+                          child: Icon(
+                            business.categoryIcon,
+                            color: business.categoryColor,
+                            size: 48,
                           ),
                         ),
                       ),
                     ),
                   ),
 
-                  // Gradient scrim
+                  // Top gradient shadow
                   Positioned.fill(
                     child: DecoratedBox(
                       decoration: BoxDecoration(
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(21)),
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            Colors.black.withOpacity(0.4),
+                            Colors.black.withOpacity(0.55),
                             Colors.transparent,
-                            Colors.black.withOpacity(0.85),
+                            Colors.black.withOpacity(0.75),
                           ],
-                          stops: const [0.0, 0.4, 1.0],
+                          stops: const [0.0, 0.45, 1.0],
                         ),
                       ),
                     ),
                   ),
 
-                  // Top Category Tag
+                  // Category Badge (Top-left)
                   Positioned(
-                    top: 14,
-                    left: 14,
+                    top: 12,
+                    left: 12,
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.7),
+                        color: business.categoryColor.withOpacity(0.9),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: business.categoryColor.withOpacity(0.8), width: 1),
                         boxShadow: [
                           BoxShadow(
-                            color: business.categoryColor.withOpacity(0.3),
-                            blurRadius: 8,
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 4,
                           ),
                         ],
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(business.categoryIcon, color: business.categoryColor, size: 14),
-                          const SizedBox(width: 6),
+                          Icon(business.categoryIcon, color: Colors.white, size: 12),
+                          const SizedBox(width: 4),
                           Text(
                             business.category,
-                            style: TextStyle(
+                            style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 11,
+                              fontSize: 10,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 0.3,
                             ),
@@ -119,58 +122,98 @@ class BusinessCard extends StatelessWidget {
                     ),
                   ),
 
-                  // Verified Venture Stamp
+                  // Top-Right Badges: SPV + Photos Count
                   Positioned(
-                    top: 14,
-                    right: 14,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF00D09C).withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.verified_rounded, color: Colors.black, size: 12),
-                          SizedBox(width: 4),
-                          Text(
-                            'VERIFIED SPV',
-                            style: TextStyle(color: Colors.black, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                    top: 12,
+                    right: 12,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (business.photosCount > 1) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.65),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.white.withOpacity(0.25)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.photo_library_rounded, size: 11, color: Colors.white),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${business.photosCount}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
+                          const SizedBox(width: 6),
                         ],
-                      ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: primaryBlue.withOpacity(0.9),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.verified_user_rounded, color: Colors.white, size: 11),
+                              SizedBox(width: 4),
+                              Text(
+                                'SPV BACKED',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.4,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
 
-                  // Location & SPV title overlay on bottom of image
+                  // Location & Payout overlay at bottom of image
                   Positioned(
-                    bottom: 12,
+                    bottom: 10,
                     left: 14,
                     right: 14,
                     child: Row(
                       children: [
                         const Icon(Icons.location_on_rounded, color: Color(0xFFEF4444), size: 14),
                         const SizedBox(width: 4),
-                        Text(
-                          business.location.formatted,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            shadows: [Shadow(color: Colors.black, blurRadius: 4)],
+                        Expanded(
+                          child: Text(
+                            business.location.formatted,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              shadows: [Shadow(color: Colors.black, blurRadius: 4)],
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const Spacer(),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(4),
+                            color: Colors.white.withOpacity(0.18),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: Colors.white.withOpacity(0.2)),
                           ),
                           child: Text(
                             business.payoutFrequency,
-                            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600),
+                            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700),
                           ),
                         ),
                       ],
@@ -223,7 +266,7 @@ class BusinessCard extends StatelessWidget {
                             child: _MetricItem(
                               label: 'MIN TICKET',
                               value: business.formattedMinInvestment,
-                              valueColor: const Color(0xFF00D09C),
+                              valueColor: primaryBlue,
                             ),
                           ),
                           _Divider(dark: dark),
@@ -265,8 +308,8 @@ class BusinessCard extends StatelessWidget {
                         Expanded(
                           child: OutlinedButton.icon(
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: const Color(0xFF00D09C),
-                              side: const BorderSide(color: Color(0xFF00D09C), width: 1.2),
+                              foregroundColor: primaryBlue,
+                              side: const BorderSide(color: primaryBlue, width: 1.2),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               padding: const EdgeInsets.symmetric(vertical: 11),
                             ),
@@ -280,25 +323,44 @@ class BusinessCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 10),
 
-                        // View Project Details
+                        // View Details gradient button
                         Expanded(
-                          child: ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF00D09C),
-                              foregroundColor: Colors.black,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(vertical: 11),
-                            ),
-                            icon: const Icon(Icons.arrow_forward_rounded, size: 16),
-                            label: const Text(
-                              'View Details',
-                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
-                            ),
-                            onPressed: () {
+                          child: GestureDetector(
+                            onTap: () {
                               HapticFeedback.lightImpact();
                               Get.to(() => BusinessDetailView(business: business));
                             },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 11),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: primaryBlue.withOpacity(0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'View Details',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  SizedBox(width: 6),
+                                  Icon(Icons.arrow_forward_rounded, size: 16, color: Colors.white),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                       ],

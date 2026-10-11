@@ -18,12 +18,13 @@ class BusinessView extends GetView<BusinessController> {
     final bg = dark ? const Color(0xFF060B16) : const Color(0xFFF1F5F9);
     final titleColor = dark ? const Color(0xFFEDF0FF) : const Color(0xFF1A2340);
     final subColor = dark ? const Color(0xFF8A95B0) : const Color(0xFF6B7280);
+    const primaryBlue = Color(0xFF2563EB);
 
     return Scaffold(
       backgroundColor: bg,
       body: SafeArea(
         child: RefreshIndicator(
-          color: const Color(0xFF00D09C),
+          color: primaryBlue,
           backgroundColor: dark ? const Color(0xFF0F172A) : Colors.white,
           onRefresh: () => ctrl.loadOpportunities(),
           child: CustomScrollView(
@@ -52,16 +53,16 @@ class BusinessView extends GetView<BusinessController> {
                                 ),
                                 const SizedBox(width: 8),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF00D09C).withOpacity(0.15),
+                                    color: primaryBlue.withOpacity(0.12),
                                     borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: const Color(0xFF00D09C).withOpacity(0.3)),
+                                    border: Border.all(color: primaryBlue.withOpacity(0.3)),
                                   ),
                                   child: const Text(
                                     'VENTURES',
                                     style: TextStyle(
-                                      color: Color(0xFF00D09C),
+                                      color: primaryBlue,
                                       fontSize: 10,
                                       fontWeight: FontWeight.w800,
                                       letterSpacing: 0.8,
@@ -108,11 +109,15 @@ class BusinessView extends GetView<BusinessController> {
                       decoration: InputDecoration(
                         hintText: 'Search warehouses, petrol pumps, dairy...',
                         hintStyle: TextStyle(color: subColor, fontSize: 13),
-                        prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF00D09C), size: 20),
+                        prefixIcon: const Icon(Icons.search_rounded, color: primaryBlue, size: 20),
                         suffixIcon: Obx(() {
                           if (ctrl.searchQuery.value.isEmpty) return const SizedBox.shrink();
                           return IconButton(
-                            icon: const Icon(Icons.clear_rounded, size: 18, color: Colors.white54),
+                            icon: Icon(
+                              Icons.clear_rounded,
+                              size: 18,
+                              color: dark ? Colors.white54 : const Color(0xFF64748B),
+                            ),
                             onPressed: () => ctrl.setSearchQuery(''),
                           );
                         }),
@@ -133,7 +138,7 @@ class BusinessView extends GetView<BusinessController> {
                     padding: const EdgeInsets.symmetric(horizontal: 18),
                     scrollDirection: Axis.horizontal,
                     itemCount: ctrl.categories.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    separatorBuilder: (ctx, idx) => const SizedBox(width: 8),
                     itemBuilder: (ctx, i) {
                       final category = ctrl.categories[i];
                       return Obx(() {
@@ -147,19 +152,19 @@ class BusinessView extends GetView<BusinessController> {
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                             decoration: BoxDecoration(
                               color: isSel
-                                  ? const Color(0xFF00D09C)
+                                  ? primaryBlue
                                   : (dark ? const Color(0xFF0F172A) : Colors.white),
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(
                                 color: isSel
-                                    ? const Color(0xFF00D09C)
+                                    ? primaryBlue
                                     : (dark ? Colors.white.withOpacity(0.08) : const Color(0xFFE2E8F0)),
                                 width: 1.2,
                               ),
                               boxShadow: isSel
                                   ? [
                                       BoxShadow(
-                                        color: const Color(0xFF00D09C).withOpacity(0.3),
+                                        color: primaryBlue.withOpacity(0.35),
                                         blurRadius: 10,
                                         offset: const Offset(0, 3),
                                       ),
@@ -172,13 +177,13 @@ class BusinessView extends GetView<BusinessController> {
                                 Icon(
                                   _getCategoryIcon(category),
                                   size: 15,
-                                  color: isSel ? Colors.black : const Color(0xFF00D09C),
+                                  color: isSel ? Colors.white : primaryBlue,
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
                                   category,
                                   style: TextStyle(
-                                    color: isSel ? Colors.black : titleColor,
+                                    color: isSel ? Colors.white : titleColor,
                                     fontSize: 12,
                                     fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
                                   ),
@@ -188,13 +193,15 @@ class BusinessView extends GetView<BusinessController> {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                                     decoration: BoxDecoration(
-                                      color: isSel ? Colors.black.withOpacity(0.2) : Colors.white.withOpacity(0.1),
+                                      color: isSel
+                                          ? Colors.white.withOpacity(0.25)
+                                          : (dark ? Colors.white.withOpacity(0.08) : const Color(0xFFF1F5F9)),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: Text(
                                       '$count',
                                       style: TextStyle(
-                                        color: isSel ? Colors.black : subColor,
+                                        color: isSel ? Colors.white : subColor,
                                         fontSize: 10,
                                         fontWeight: FontWeight.w700,
                                       ),
@@ -221,16 +228,16 @@ class BusinessView extends GetView<BusinessController> {
                       gradient: LinearGradient(
                         colors: dark
                             ? [
-                                const Color(0xFF00D09C).withOpacity(0.12),
-                                const Color(0xFF3B82F6).withOpacity(0.04),
+                                primaryBlue.withOpacity(0.12),
+                                const Color(0xFF1D4ED8).withOpacity(0.04),
                               ]
                             : [
-                                const Color(0xFF00D09C).withOpacity(0.15),
-                                const Color(0xFF3B82F6).withOpacity(0.08),
+                                primaryBlue.withOpacity(0.1),
+                                const Color(0xFF3B82F6).withOpacity(0.05),
                               ],
                       ),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFF00D09C).withOpacity(0.25)),
+                      border: Border.all(color: primaryBlue.withOpacity(0.25)),
                     ),
                     child: Row(
                       children: [
@@ -238,10 +245,10 @@ class BusinessView extends GetView<BusinessController> {
                           width: 38,
                           height: 38,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF00D09C).withOpacity(0.2),
+                            color: primaryBlue.withOpacity(0.15),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.security_rounded, color: Color(0xFF00D09C), size: 20),
+                          child: const Icon(Icons.security_rounded, color: primaryBlue, size: 20),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -251,7 +258,7 @@ class BusinessView extends GetView<BusinessController> {
                               const Text(
                                 'Institutional Due-Diligence & Escrow Safeguards',
                                 style: TextStyle(
-                                  color: Color(0xFF00D09C),
+                                  color: primaryBlue,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w800,
                                 ),
@@ -278,7 +285,7 @@ class BusinessView extends GetView<BusinessController> {
                       padding: EdgeInsets.symmetric(vertical: 60),
                       child: Center(
                         child: CircularProgressIndicator(
-                          color: Color(0xFF00D09C),
+                          color: primaryBlue,
                           strokeWidth: 2,
                         ),
                       ),
@@ -303,8 +310,9 @@ class BusinessView extends GetView<BusinessController> {
                             const SizedBox(height: 16),
                             ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF00D09C),
-                                foregroundColor: Colors.black,
+                                backgroundColor: primaryBlue,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               ),
                               onPressed: () => ctrl.loadOpportunities(),
                               child: const Text('Try Again'),
@@ -361,12 +369,18 @@ class BusinessView extends GetView<BusinessController> {
 
   IconData _getCategoryIcon(String cat) {
     switch (cat) {
-      case 'Warehouses & Logistics': return Icons.warehouse_rounded;
-      case 'Petrol Pumps': return Icons.local_gas_station_rounded;
-      case 'Dairy Farms': return Icons.agriculture_rounded;
-      case 'Hotels & Hospitality': return Icons.hotel_rounded;
-      case 'CBG (Compressed Biogas) Plants': return Icons.eco_rounded;
-      default: return Icons.business_center_rounded;
+      case 'Warehouses & Logistics':
+        return Icons.warehouse_rounded;
+      case 'Petrol Pumps':
+        return Icons.local_gas_station_rounded;
+      case 'Dairy Farms':
+        return Icons.agriculture_rounded;
+      case 'Hotels & Hospitality':
+        return Icons.hotel_rounded;
+      case 'CBG (Compressed Biogas) Plants':
+        return Icons.eco_rounded;
+      default:
+        return Icons.business_center_rounded;
     }
   }
 }
