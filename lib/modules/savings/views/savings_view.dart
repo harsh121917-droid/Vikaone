@@ -1,11 +1,8 @@
 import 'dart:math';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../controllers/savings_controller.dart';
-import '../../home/controllers/main_shell_controller.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/controllers/theme_controller.dart';
 
 // ─── Opportunity data ─────────────────────────────────────────────────────────
@@ -69,7 +66,7 @@ class SavingsView extends GetView<SavingsController> {
             if (controller.isLoading.value) {
               return const Center(
                 child: CircularProgressIndicator(
-                  color: AppColors.accent,
+                  color: const Color(0xFF2563EB),
                   strokeWidth: 2,
                 ),
               );
@@ -159,12 +156,12 @@ class _BodyState extends State<_Body> with SingleTickerProviderStateMixin {
                   ),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [AppColors.accent, AppColors.accentLight],
+                      colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
                     ),
                     borderRadius: BorderRadius.circular(14),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.accent.withOpacity(0.45),
+                        color: const Color(0xFF2563EB).withOpacity(0.45),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -326,7 +323,7 @@ class _Tab extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: active
                 ? const LinearGradient(
-                    colors: [AppColors.accent, AppColors.accentLight],
+                    colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   )
@@ -335,7 +332,7 @@ class _Tab extends StatelessWidget {
             boxShadow: active
                 ? [
                     BoxShadow(
-                      color: AppColors.accent.withOpacity(0.45),
+                      color: const Color(0xFF2563EB).withOpacity(0.45),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -402,10 +399,6 @@ class _DailySectionState extends State<_DailySection> {
     return (principal * pow(1 + 0.11, _tenure / 2)).round();
   }
 
-  String _fmtNum(int n) => n.toString().replaceAllMapped(
-    RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-    (m) => '${m[1]},',
-  );
 
   @override
   Widget build(BuildContext context) {
@@ -461,8 +454,8 @@ class _DailySectionState extends State<_DailySection> {
                         gradient: active
                             ? const LinearGradient(
                                 colors: [
-                                  AppColors.accent,
-                                  AppColors.accentLight,
+                                  const Color(0xFF2563EB),
+                                  const Color(0xFF3B82F6),
                                 ],
                               )
                             : null,
@@ -474,7 +467,7 @@ class _DailySectionState extends State<_DailySection> {
                         boxShadow: active
                             ? [
                                 BoxShadow(
-                                  color: AppColors.accent.withOpacity(0.45),
+                                  color: const Color(0xFF2563EB).withOpacity(0.45),
                                   blurRadius: 10,
                                   offset: const Offset(0, 4),
                                 ),
@@ -549,8 +542,8 @@ class _DailySectionState extends State<_DailySection> {
                         gradient: active
                             ? const LinearGradient(
                                 colors: [
-                                  AppColors.accent,
-                                  AppColors.accentLight,
+                                  const Color(0xFF2563EB),
+                                  const Color(0xFF3B82F6),
                                 ],
                               )
                             : null,
@@ -562,7 +555,7 @@ class _DailySectionState extends State<_DailySection> {
                         boxShadow: active
                             ? [
                                 BoxShadow(
-                                  color: AppColors.accent.withOpacity(0.45),
+                                  color: const Color(0xFF2563EB).withOpacity(0.45),
                                   blurRadius: 10,
                                   offset: const Offset(0, 4),
                                 ),
@@ -612,17 +605,17 @@ class _DailySectionState extends State<_DailySection> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
             decoration: BoxDecoration(
-              color: AppColors.accent.withOpacity(dark ? 0.15 : 0.07),
+              color: const Color(0xFF2563EB).withOpacity(dark ? 0.15 : 0.07),
               borderRadius: BorderRadius.circular(13),
               border: Border.all(
-                color: AppColors.accent.withOpacity(dark ? 0.3 : 0.18),
+                color: const Color(0xFF2563EB).withOpacity(dark ? 0.3 : 0.18),
               ),
             ),
             child: Row(
               children: [
                 const Icon(
                   Icons.celebration_outlined,
-                  color: AppColors.accent,
+                  color: const Color(0xFF2563EB),
                   size: 16,
                 ),
                 const SizedBox(width: 10),
@@ -635,7 +628,7 @@ class _DailySectionState extends State<_DailySection> {
                         TextSpan(
                           text: '10% cashback',
                           style: TextStyle(
-                            color: AppColors.accent,
+                            color: const Color(0xFF2563EB),
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -665,7 +658,7 @@ class _DailySectionState extends State<_DailySection> {
                 child: Checkbox(
                   value: _agreed,
                   onChanged: (v) => setState(() => _agreed = v ?? false),
-                  activeColor: AppColors.accent,
+                  activeColor: const Color(0xFF2563EB),
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
               ),
@@ -679,7 +672,7 @@ class _DailySectionState extends State<_DailySection> {
                       TextSpan(
                         text: 'Purchase Agreement',
                         style: TextStyle(
-                          color: AppColors.accent,
+                          color: const Color(0xFF2563EB),
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -749,7 +742,6 @@ class _MonthlySectionState extends State<_MonthlySection> {
     final th = dark ? const Color(0xFF4A5568) : const Color(0xFFADB5BD);
     final cardBg = dark ? const Color(0xFF0E1626) : Colors.white;
     final border = dark ? const Color(0xFF1A2B45) : const Color(0xFFE2E6F0);
-    final barBg = dark ? const Color(0xFF1A2B45) : const Color(0xFFEEF2FF);
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -909,7 +901,7 @@ class _MonthlySectionState extends State<_MonthlySection> {
                   width: active ? 20 : 6,
                   height: 6,
                   decoration: BoxDecoration(
-                    color: active ? AppColors.accent : border,
+                    color: active ? const Color(0xFF2563EB) : border,
                     borderRadius: BorderRadius.circular(3),
                   ),
                 );
@@ -956,7 +948,7 @@ class _MonthlySectionState extends State<_MonthlySection> {
               color: cardBg,
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
-                color: AppColors.accent.withOpacity(dark ? 0.18 : 0.08),
+                color: const Color(0xFF2563EB).withOpacity(dark ? 0.18 : 0.08),
               ),
               boxShadow: [
                 BoxShadow(
@@ -992,7 +984,7 @@ class _MonthlySectionState extends State<_MonthlySection> {
                 _SumRow(
                   label: 'Total Savings',
                   value: '₹${_fmtNum(_totalSav)}',
-                  tp: AppColors.accent,
+                  tp: const Color(0xFF2563EB),
                   ts: ts,
                   big: true,
                 ),
@@ -1020,7 +1012,7 @@ class _MonthlySectionState extends State<_MonthlySection> {
                 child: Checkbox(
                   value: _agreed,
                   onChanged: (v) => setState(() => _agreed = v ?? false),
-                  activeColor: AppColors.accent,
+                  activeColor: const Color(0xFF2563EB),
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
               ),
@@ -1034,7 +1026,7 @@ class _MonthlySectionState extends State<_MonthlySection> {
                       TextSpan(
                         text: 'Purchase Agreement',
                         style: TextStyle(
-                          color: AppColors.accent,
+                          color: const Color(0xFF2563EB),
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -1135,7 +1127,7 @@ class _ProjectionCardState extends State<_ProjectionCard>
     final dark = widget.dark;
     return AnimatedBuilder(
       animation: _c,
-      builder: (_, __) => Transform.translate(
+      builder: (_, _) => Transform.translate(
         offset: Offset(0, -3 + _c.value * 5),
         child: Container(
           decoration: BoxDecoration(
@@ -1159,7 +1151,7 @@ class _ProjectionCardState extends State<_ProjectionCard>
                     ],
                   ),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: AppColors.accent.withOpacity(0.20)),
+            border: Border.all(color: const Color(0xFF2563EB).withOpacity(0.20)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(dark ? 0.55 : 0.22),
@@ -1168,7 +1160,7 @@ class _ProjectionCardState extends State<_ProjectionCard>
                 spreadRadius: -4,
               ),
               BoxShadow(
-                color: AppColors.accent.withOpacity(dark ? 0.15 : 0.08),
+                color: const Color(0xFF2563EB).withOpacity(dark ? 0.15 : 0.08),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -1227,7 +1219,7 @@ class _ProjectionCardState extends State<_ProjectionCard>
                     child: Text(
                       '₹${_fmt(widget.projected)}',
                       style: TextStyle(
-                        color: AppColors.accent.withOpacity(0.22),
+                        color: const Color(0xFF2563EB).withOpacity(0.22),
                         fontSize: 36,
                         fontWeight: FontWeight.w900,
                         letterSpacing: -1,
@@ -1606,7 +1598,7 @@ class _Stepper extends StatelessWidget {
               display ?? '$value',
               textAlign: TextAlign.center,
               style: const TextStyle(
-                color: AppColors.accent,
+                color: const Color(0xFF2563EB),
                 fontSize: 14,
                 fontWeight: FontWeight.w800,
               ),
@@ -1622,12 +1614,12 @@ class _Stepper extends StatelessWidget {
               height: 32,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [AppColors.accent, AppColors.accentLight],
+                  colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
                 ),
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.accent.withOpacity(0.4),
+                    color: const Color(0xFF2563EB).withOpacity(0.4),
                     blurRadius: 8,
                     offset: const Offset(0, 3),
                   ),
@@ -1701,7 +1693,7 @@ class _IrrBarState extends State<_IrrBar> {
             children: [
               const Icon(
                 Icons.calculate_outlined,
-                color: AppColors.accent,
+                color: const Color(0xFF2563EB),
                 size: 16,
               ),
               const SizedBox(width: 8),
@@ -1720,13 +1712,13 @@ class _IrrBarState extends State<_IrrBar> {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.accent.withOpacity(dark ? 0.2 : 0.1),
+                  color: const Color(0xFF2563EB).withOpacity(dark ? 0.2 : 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   '${_irr.toStringAsFixed(0)}% p.a.',
                   style: const TextStyle(
-                    color: AppColors.accent,
+                    color: const Color(0xFF2563EB),
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
                   ),
@@ -1738,14 +1730,14 @@ class _IrrBarState extends State<_IrrBar> {
           // Proper slider — track visible so thumb aligns correctly
           SliderTheme(
             data: SliderTheme.of(context).copyWith(
-              activeTrackColor: AppColors.accent,
+              activeTrackColor: const Color(0xFF2563EB),
               inactiveTrackColor: barBg,
               thumbColor: Colors.white,
               thumbShape: const RoundSliderThumbShape(
                 enabledThumbRadius: 11,
                 elevation: 6,
               ),
-              overlayColor: AppColors.accent.withOpacity(0.15),
+              overlayColor: const Color(0xFF2563EB).withOpacity(0.15),
               trackHeight: 8,
               activeTickMarkColor: Colors.transparent,
               inactiveTickMarkColor: Colors.transparent,
@@ -1846,7 +1838,7 @@ class _SubmitBtnState extends State<_SubmitBtn>
           decoration: BoxDecoration(
             gradient: widget.enabled
                 ? const LinearGradient(
-                    colors: [AppColors.accent, AppColors.accentLight],
+                    colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   )
@@ -1856,7 +1848,7 @@ class _SubmitBtnState extends State<_SubmitBtn>
             boxShadow: widget.enabled
                 ? [
                     BoxShadow(
-                      color: AppColors.accent.withOpacity(0.5),
+                      color: const Color(0xFF2563EB).withOpacity(0.5),
                       blurRadius: 16,
                       offset: const Offset(0, 7),
                     ),
@@ -1901,7 +1893,7 @@ void _showSuccess(BuildContext context, String type, int amount, bool dark) {
             color: bg,
             borderRadius: BorderRadius.circular(28),
             border: Border.all(
-              color: AppColors.accent.withOpacity(dark ? 0.2 : 0.08),
+              color: const Color(0xFF2563EB).withOpacity(dark ? 0.2 : 0.08),
             ),
             boxShadow: [
               BoxShadow(
@@ -1992,12 +1984,12 @@ void _showSuccess(BuildContext context, String type, int amount, bool dark) {
                         height: 46,
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
-                            colors: [AppColors.accent, AppColors.accentLight],
+                            colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
                           ),
                           borderRadius: BorderRadius.circular(14),
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.accent.withOpacity(0.4),
+                              color: const Color(0xFF2563EB).withOpacity(0.4),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),

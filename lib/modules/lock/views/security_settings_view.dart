@@ -31,7 +31,7 @@ class _SecuritySettingsViewState extends State<SecuritySettingsView> {
       final cardBg = dark ? const Color(0xFF0E1626) : Colors.white;
       final tp = dark ? const Color(0xFFEDF0FF) : const Color(0xFF1A2340);
       final ts = dark ? const Color(0xFF8A95B0) : const Color(0xFF6B7280);
-      final border = dark ? const Color(0xFF1A2B45) : const Color(0xFFE2E6F0);
+      final border = dark ? const Color(0xFF1E2D4A) : const Color(0xFFE2E8F0);
       final lock = LockService.to;
 
       return Scaffold(
@@ -348,7 +348,6 @@ class _SettingTile extends StatelessWidget {
     final cardBg = dark ? const Color(0xFF0E1626) : Colors.white;
     final tp = dark ? const Color(0xFFEDF0FF) : const Color(0xFF1A2340);
     final ts = dark ? const Color(0xFF8A95B0) : const Color(0xFF6B7280);
-    final border = dark ? const Color(0xFF1A2B45) : const Color(0xFFE2E6F0);
 
     return GestureDetector(
       onTap: onTap,

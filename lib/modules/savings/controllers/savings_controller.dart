@@ -64,7 +64,7 @@ class SavingsController extends GetxController {
   }
 
   // ── Create plan ─────────────────────────────────────────────────────────────
-  Future<bool> createPlan({
+  Future<SavingModel?> createSavingPlan({
     required String type,
     required int targetAmount,
     required int amountPerCycle,
@@ -83,18 +83,17 @@ class SavingsController extends GetxController {
         totalTarget: (summary.value?.totalTarget ?? 0) + targetAmount,
         activePlans: (summary.value?.activePlans ?? 0) + 1,
       );
-      return true;
+      return plan;
     } on DioException catch (e) {
-      _handleKyc(e) {
-
-          Get.snackbar(
-            'Error',
-            e.response?.data?['message'] ?? 'Failed to create plan',
-            backgroundColor: AppColors.error,
-            colorText: Colors.white,
-          );
+      if (!_handleKyc(e)) {
+        Get.snackbar(
+          'Error',
+          e.response?.data?['message'] ?? 'Failed to create plan',
+          backgroundColor: AppColors.error,
+          colorText: Colors.white,
+        );
       }
-      return false;
+      return null;
     } catch (_) {
       Get.snackbar(
         'Error',
@@ -102,8 +101,23 @@ class SavingsController extends GetxController {
         backgroundColor: AppColors.error,
         colorText: Colors.white,
       );
-      return false;
+      return null;
     }
+  }
+
+  Future<bool> createPlan({
+    required String type,
+    required int targetAmount,
+    required int amountPerCycle,
+    String? targetPropertyId,
+  }) async {
+    final res = await createSavingPlan(
+      type: type,
+      targetAmount: targetAmount,
+      amountPerCycle: amountPerCycle,
+      targetPropertyId: targetPropertyId,
+    );
+    return res != null;
   }
 
   // ── Initiate first Razorpay payment ─────────────────────────────────────────
@@ -124,7 +138,7 @@ class SavingsController extends GetxController {
         'description':
             '${data['planType'] == 'daily' ? 'Daily' : 'Monthly'} saving plan — ₹${data['amountPerCycle']}',
         'prefill': {'contact': '', 'email': ''},
-        'theme': {'color': '#FF6B35'},
+        'theme': {'color': '#2563EB'},
       };
 
       _razorpay.open(options);
@@ -172,7 +186,7 @@ class SavingsController extends GetxController {
         'name': 'Bharat SQFT',
         'description': 'Add savings — ₹${data['cycleAmount']}',
         'prefill': {'contact': '', 'email': ''},
-        'theme': {'color': '#FF6B35'},
+        'theme': {'color': '#2563EB'},
       };
 
       _razorpay.open(options);

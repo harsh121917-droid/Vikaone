@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -10,11 +9,6 @@ import '../../../data/models/saving_model.dart';
 class MyPlansView extends GetView<SavingsController> {
   const MyPlansView({super.key});
 
-  static String _fmt(int n) {
-    if (n >= 10000000) return '₹${(n / 10000000).toStringAsFixed(2)}Cr';
-    if (n >= 100000) return '₹${(n / 100000).toStringAsFixed(1)}L';
-    return '₹${n.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}';
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +50,7 @@ class MyPlansView extends GetView<SavingsController> {
                         if (controller.isLoading.value) {
                           return const Center(
                             child: CircularProgressIndicator(
-                              color: AppColors.accent,
+                              color: Color(0xFF2563EB),
                               strokeWidth: 2,
                             ),
                           );
@@ -66,11 +60,12 @@ class MyPlansView extends GetView<SavingsController> {
                             : controller.activeTab.value == 1
                             ? controller.dailyPlans
                             : controller.monthlyPlans;
-                        if (list.isEmpty)
+                        if (list.isEmpty) {
                           return _EmptyState(onAdd: () => Get.back());
+                        }
                         return RefreshIndicator(
                           onRefresh: controller.loadSavings,
-                          color: AppColors.accent,
+                          color: Color(0xFF2563EB),
                           child: ListView.builder(
                             padding: const EdgeInsets.fromLTRB(22, 0, 22, 100),
                             physics: const BouncingScrollPhysics(),
@@ -160,22 +155,22 @@ class MyPlansView extends GetView<SavingsController> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
               decoration: BoxDecoration(
-                color: AppColors.accent.withOpacity(dark ? 0.15 : 0.07),
+                color: Color(0xFF2563EB).withOpacity(dark ? 0.15 : 0.07),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.accent.withOpacity(0.25)),
+                border: Border.all(color: Color(0xFF2563EB).withOpacity(0.25)),
               ),
               child: Row(
                 children: const [
                   Icon(
                     Icons.lock_outline_rounded,
-                    color: AppColors.accent,
+                    color: Color(0xFF2563EB),
                     size: 14,
                   ),
                   SizedBox(width: 8),
                   Text(
                     'Secured by Razorpay',
                     style: TextStyle(
-                      color: AppColors.accent,
+                      color: Color(0xFF2563EB),
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                     ),
@@ -193,7 +188,7 @@ class MyPlansView extends GetView<SavingsController> {
                 labelStyle: TextStyle(color: ts),
                 prefixIcon: const Icon(
                   Icons.savings_outlined,
-                  color: AppColors.accent,
+                  color: Color(0xFF2563EB),
                 ),
                 filled: true,
                 fillColor: dark
@@ -206,7 +201,7 @@ class MyPlansView extends GetView<SavingsController> {
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
                   borderSide: const BorderSide(
-                    color: AppColors.accent,
+                    color: Color(0xFF2563EB),
                     width: 1.5,
                   ),
                 ),
@@ -232,12 +227,12 @@ class MyPlansView extends GetView<SavingsController> {
                 height: 54,
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [AppColors.accent, AppColors.accentLight],
+                    colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
                   ),
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.accent.withOpacity(0.5),
+                      color: Color(0xFF2563EB).withOpacity(0.5),
                       blurRadius: 14,
                       offset: const Offset(0, 6),
                     ),
@@ -420,7 +415,7 @@ class _HeroHeaderState extends State<_HeroHeader>
       bottom: false,
       child: AnimatedBuilder(
         animation: _c,
-        builder: (_, __) => Container(
+        builder: (_, _) => Container(
           padding: const EdgeInsets.fromLTRB(22, 16, 22, 28),
           decoration: BoxDecoration(
             gradient: dark
@@ -450,7 +445,7 @@ class _HeroHeaderState extends State<_HeroHeader>
                 spreadRadius: -4,
               ),
               BoxShadow(
-                color: AppColors.accent.withOpacity(dark ? 0.12 : 0.06),
+                color: Color(0xFF2563EB).withOpacity(dark ? 0.12 : 0.06),
                 blurRadius: 24,
                 offset: const Offset(0, 10),
               ),
@@ -470,7 +465,7 @@ class _HeroHeaderState extends State<_HeroHeader>
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        AppColors.accent.withOpacity(0.13),
+                        Color(0xFF2563EB).withOpacity(0.13),
                         Colors.transparent,
                       ],
                     ),
@@ -487,7 +482,7 @@ class _HeroHeaderState extends State<_HeroHeader>
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        const Color(0xFF3B82F6).withOpacity(0.10),
+                        Color(0xFF3B82F6).withOpacity(0.10),
                         Colors.transparent,
                       ],
                     ),
@@ -609,7 +604,7 @@ class _SumChip extends StatelessWidget {
     decoration: BoxDecoration(
       color: Colors.white.withOpacity(0.07),
       borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: AppColors.accent.withOpacity(0.2)),
+      border: Border.all(color: Color(0xFF2563EB).withOpacity(0.2)),
       boxShadow: [
         BoxShadow(
           color: Colors.black.withOpacity(0.15),
@@ -692,14 +687,14 @@ class _FilterTabs extends StatelessWidget {
                 decoration: BoxDecoration(
                   gradient: active
                       ? const LinearGradient(
-                          colors: [AppColors.accent, AppColors.accentLight],
+                          colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
                         )
                       : null,
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: active
                       ? [
                           BoxShadow(
-                            color: AppColors.accent.withOpacity(0.45),
+                            color: Color(0xFF2563EB).withOpacity(0.45),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
@@ -797,7 +792,7 @@ class _PlanCard3DState extends State<_PlanCard3D>
     final plan = widget.plan;
     final dark = widget.dark;
     final isDaily = plan.type == 'daily';
-    final accent = isDaily ? const Color(0xFFFF6B35) : AppColors.primary;
+    final accent = isDaily ? Color(0xFF3B82F6) : Color(0xFF2563EB);
 
     final cardBg = dark ? const Color(0xFF0E1626) : Colors.white;
     final ts = dark ? const Color(0xFF8A95B0) : const Color(0xFF6B7280);
@@ -810,7 +805,7 @@ class _PlanCard3DState extends State<_PlanCard3D>
         child: Padding(
           padding: const EdgeInsets.only(bottom: 20),
           child: LayoutBuilder(
-            builder: (_, box) => GestureDetector(
+            builder: (ctx, box) => GestureDetector(
               onTapDown: (_) {
                 HapticFeedback.lightImpact();
                 setState(() => _pressed = true);
@@ -1054,7 +1049,7 @@ class _PlanCard3DState extends State<_PlanCard3D>
                                         milliseconds: 900,
                                       ),
                                       curve: Curves.easeOutCubic,
-                                      builder: (_, v, __) =>
+                                      builder: (_, v, _) =>
                                           FractionallySizedBox(
                                             widthFactor: v,
                                             child: Stack(
@@ -1292,17 +1287,17 @@ class _ActionBtn3DState extends State<_ActionBtn3D>
               decoration: BoxDecoration(
                 gradient: plan.isActive && !paying
                     ? const LinearGradient(
-                        colors: [AppColors.accent, AppColors.accentLight],
+                        colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
                       )
                     : null,
                 color: plan.isActive && !paying
                     ? null
-                    : AppColors.accent.withOpacity(0.5),
+                    : Color(0xFF2563EB).withOpacity(0.5),
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: plan.isActive && !paying
                     ? [
                         BoxShadow(
-                          color: AppColors.accent.withOpacity(0.5),
+                          color: Color(0xFF2563EB).withOpacity(0.5),
                           blurRadius: 12,
                           offset: const Offset(0, 5),
                         ),
@@ -1448,17 +1443,17 @@ class _EmptyState extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: dark ? const Color(0xFF0E1626) : Colors.white,
-                border: Border.all(color: AppColors.accent.withOpacity(0.35)),
+                border: Border.all(color: Color(0xFF2563EB).withOpacity(0.35)),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.accent.withOpacity(0.22),
+                    color: Color(0xFF2563EB).withOpacity(0.22),
                     blurRadius: 20,
                   ),
                 ],
               ),
               child: const Icon(
                 Icons.savings_outlined,
-                color: AppColors.accent,
+                color: Color(0xFF2563EB),
                 size: 36,
               ),
             ),
@@ -1487,12 +1482,12 @@ class _EmptyState extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [AppColors.accent, AppColors.accentLight],
+                    colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
                   ),
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.accent.withOpacity(0.45),
+                      color: Color(0xFF2563EB).withOpacity(0.45),
                       blurRadius: 14,
                       offset: const Offset(0, 6),
                     ),

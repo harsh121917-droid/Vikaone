@@ -1,3 +1,5 @@
+import 'property_document_viewer_screen.dart';
+import '../../../core/services/lock_service.dart';
 import 'package:real_estate/modules/wallet/controllers/wallet_controller.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -18,8 +20,9 @@ import '../../auth/controllers/auth_controller.dart';
 
 
 Future<void> _previewPdfDocument(String? url,
-  String title,
-) async {
+  String title, {
+  String? category,
+}) async {
   if (url == null || url.trim().isEmpty) {
     Get.snackbar(
       'Document Notice',
@@ -36,47 +39,28 @@ Future<void> _previewPdfDocument(String? url,
   }
 
   final cleanUrl = url.trim();
-  Get.snackbar(
-    'Opening Preview',
-    'Loading preview for $title...',
-    backgroundColor: const Color(0xFF10B981),
-    colorText: Colors.white,
-    snackPosition: SnackPosition.BOTTOM,
-    icon: const Icon(Icons.picture_as_pdf_rounded, color: Colors.white),
-    margin: const EdgeInsets.all(14),
-    borderRadius: 14,
-    duration: const Duration(seconds: 2),
-  );
 
-  // Google Docs Viewer embeds PDF rendering directly in InAppBrowserView without downloading
-  final gviewUrl =
-      'https://docs.google.com/viewer?url=${Uri.encodeComponent(cleanUrl)}&embedded=true';
-  final gviewUri = Uri.parse(gviewUrl);
-  final directUri = Uri.parse(cleanUrl);
-
-  try {
-    final opened = await launchUrl(gviewUri, mode: LaunchMode.inAppBrowserView);
-    if (!opened) {
-      if (!await launchUrl(directUri, mode: LaunchMode.inAppBrowserView)) {
-        await launchUrl(directUri, mode: LaunchMode.externalApplication);
-      }
-    }
-  } catch (e) {
-    try {
-      await launchUrl(directUri, mode: LaunchMode.externalApplication);
-    } catch (_) {
-      Get.snackbar(
-        'Preview Notice',
-        'Could not open document viewer. Please check internet connection.',
-        backgroundColor: const Color(0xFFEF4444),
-        colorText: Colors.white,
-        snackPosition: SnackPosition.BOTTOM,
-      );
-    }
+  // Suppress any background lock triggers during document preview
+  if (Get.isRegistered<LockService>()) {
+    LockService.to.suppressLockFor(const Duration(minutes: 10));
   }
+
+  // Open the in-app document viewer directly inside Flutter.
+  // This keeps the Flutter Activity in the foreground and NEVER pauses or triggers the passcode screen.
+  Get.to(
+    () => PropertyDocumentViewerScreen(
+      url: cleanUrl,
+      title: title,
+      category: category,
+    ),
+    transition: Transition.cupertino,
+  );
 }
 
 Future<void> _downloadPdfDocument(String? url, String title) async {
+  if (Get.isRegistered<LockService>()) {
+    LockService.to.suppressLockFor(const Duration(minutes: 10));
+  }
   if (url == null || url.trim().isEmpty) {
     Get.snackbar(
       'Download Notice',
@@ -122,6 +106,9 @@ Future<void> _downloadPdfDocument(String? url, String title) async {
 }
 
 Future<void> _launchDocumentUrl(String? url, String title) async {
+  if (Get.isRegistered<LockService>()) {
+    LockService.to.suppressLockFor(const Duration(minutes: 10));
+  }
   final ctx = Get.context;
   if (ctx != null) {
     await _previewPdfDocument(url, title);
@@ -3452,7 +3439,7 @@ class _BricksSectionState extends State<_BricksSection>
                         children: [
                           Expanded(
                             child: Text(
-                              'Total Amount',
+                              'Property Price ($_brickQty Brick${_brickQty > 1 ? "s" : ""})',
                               style: TextStyle(
                                 color: textS,
                                 fontSize: 13,
@@ -3466,8 +3453,87 @@ class _BricksSectionState extends State<_BricksSection>
                               fit: BoxFit.scaleDown,
                               child: Text(
                                 '₹${subtotal.toLocaleString()}',
+                                style: TextStyle(
+                                  color: textP,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                'Platform Fee',
+                                style: TextStyle(
+                                  color: textS,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF2563EB).withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: const Color(0xFF2563EB).withOpacity(0.3)),
+                                ),
+                                child: const Text(
+                                  '1%',
+                                  style: TextStyle(
+                                    color: Color(0xFF2563EB),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                '₹${(_brickQty > 0 ? (subtotal * 0.01).round() : 0).toLocaleString()}',
+                                style: TextStyle(
+                                  color: textP,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 18),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Total Payable Amount',
+                              style: TextStyle(
+                                color: textP,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                '₹${(subtotal + (_brickQty > 0 ? (subtotal * 0.01).round() : 0)).toLocaleString()}',
                                 style: const TextStyle(
-                                  color: AppColors.accent,
+                                  color: Color(0xFF2563EB),
                                   fontSize: 18,
                                   fontWeight: FontWeight.w900,
                                 ),
@@ -3581,7 +3647,7 @@ class _BricksSectionState extends State<_BricksSection>
                               fit: BoxFit.scaleDown,
                               child: Text(
                                 available > 0
-                                    ? 'Buy $_brickQty Brick${_brickQty > 1 ? "s" : ""} · ₹${subtotal.toLocaleString()} →'
+                                    ? 'Buy $_brickQty Brick${_brickQty > 1 ? "s" : ""} · ₹${(subtotal + (_brickQty > 0 ? (subtotal * 0.01).round() : 0)).toLocaleString()} →'
                                     : 'Sold Out',
                                 style: const TextStyle(
                                   color: Colors.white,
@@ -3869,29 +3935,103 @@ void showBuySheet({
             const SizedBox(height: 16),
             ValueListenableBuilder(
               valueListenable: qtyCtrl,
-              builder: (_, val, __) {
+              builder: (_, val, child) {
                 final qty = int.tryParse(val.text) ?? 0;
-                final total = qty * brickPrice;
+                final subtotal = qty * brickPrice;
+                final platformFee = qty > 0 ? (subtotal * 0.01).round() : 0;
+                final totalPayable = subtotal + platformFee;
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (qty > 0) ...[
-                      Text(
-                        'Total: ₹${total.toLocaleString()}',
-                        style: const TextStyle(
-                          color: AppColors.accent,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: dark ? const Color(0xFF1E2838) : const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: dark ? const Color(0xFF2B3C56) : const Color(0xFFE2E8F0),
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Property Price ($qty Brick${qty > 1 ? "s" : ""})',
+                                  style: TextStyle(color: textS, fontSize: 13, fontWeight: FontWeight.w600),
+                                ),
+                                Text(
+                                  '₹${subtotal.toLocaleString()}',
+                                  style: TextStyle(color: textP, fontSize: 14, fontWeight: FontWeight.w700),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(
+                                      'Platform Fee',
+                                      style: TextStyle(color: textS, fontSize: 13, fontWeight: FontWeight.w600),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF2563EB).withOpacity(0.12),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: const Color(0xFF2563EB).withOpacity(0.3)),
+                                      ),
+                                      child: const Text(
+                                        '1%',
+                                        style: TextStyle(
+                                          color: Color(0xFF2563EB),
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Text(
+                                  '₹${platformFee.toLocaleString()}',
+                                  style: TextStyle(color: textP, fontSize: 14, fontWeight: FontWeight.w700),
+                                ),
+                              ],
+                            ),
+                            const Divider(height: 18),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Total Payable Amount',
+                                  style: TextStyle(color: textP, fontSize: 14, fontWeight: FontWeight.w800),
+                                ),
+                                Text(
+                                  '₹${totalPayable.toLocaleString()}',
+                                  style: const TextStyle(
+                                    color: Color(0xFF2563EB),
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 10),
                       Text(
                         '${((qty / (property.totalBricks ?? 1)) * 100).toStringAsFixed(2)}% ownership',
-                        style: TextStyle(color: textS, fontSize: 13),
+                        style: TextStyle(color: textS, fontSize: 13, fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: 14),
                       _ReturnsProjection(
-                        principal: total,
+                        principal: subtotal,
                         appreciation: property.expectedAppreciation,
                         rentalYield: property.expectedRentalYield,
                         dark: dark,

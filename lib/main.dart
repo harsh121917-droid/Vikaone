@@ -102,12 +102,13 @@ class _BharatSqftAppState extends State<BharatSqftApp>
     if (state == AppLifecycleState.resumed) {
       if (_wasBackgrounded &&
           !lock.isUnlocking &&
+          !lock.isLockSuppressed &&
           auth.isLoggedIn &&
           lock.lockEnabled &&
           lock.hasPasscode &&
           Get.currentRoute != AppRoutes.lockScreen) {
         _wasBackgrounded = false;
-        Get.offAllNamed(AppRoutes.lockScreen);
+        Get.toNamed(AppRoutes.lockScreen);
       } else {
         _wasBackgrounded = false;
       }

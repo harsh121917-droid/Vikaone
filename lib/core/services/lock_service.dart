@@ -15,6 +15,24 @@ class LockService extends GetxService {
   bool isUnlocking = false;
   void setUnlocking(bool v) => isUnlocking = v;
 
+  // Temporary suppression (e.g. when opening PDF previews, external browser, or file picker)
+  DateTime? _lockSuppressedUntil;
+
+  void suppressLockFor([Duration duration = const Duration(minutes: 5)]) {
+    _lockSuppressedUntil = DateTime.now().add(duration);
+  }
+
+  void clearLockSuppression() {
+    _lockSuppressedUntil = null;
+  }
+
+  bool get isLockSuppressed {
+    if (_lockSuppressedUntil == null) return false;
+    if (DateTime.now().isBefore(_lockSuppressedUntil!)) return true;
+    _lockSuppressedUntil = null;
+    return false;
+  }
+
   // Observable so Obx widgets react when PIN is set/cleared
   final pinActive = false.obs;
 

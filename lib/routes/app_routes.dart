@@ -17,6 +17,8 @@ import '../modules/properties/views/property_detail_view.dart';
 import '../modules/kyc/bindings/kyc_binding.dart';
 import '../modules/kyc/views/kyc_view.dart';
 import '../modules/savings/views/my_plans_view.dart';
+import '../modules/savings/views/savings_view.dart';
+import '../modules/savings/bindings/savings_binding.dart';
 import '../modules/wishlist/views/wishlist_view.dart';
 import '../modules/wishlist/views/admin_wishlist_view.dart';
 import '../modules/transactions/views/transaction_history_view.dart';
@@ -47,6 +49,7 @@ abstract class AppRoutes {
   static const business       = '/business';
   static const profile        = '/profile';
   static const kyc            = '/kyc';
+  static const savings        = '/savings';
   static const myPlans        = '/savings/my-plans';
   static const wishlist       = '/wishlist';
   static const adminWishlist  = '/admin/wishlist';
@@ -75,6 +78,7 @@ final appPages = [
   GetPage(name: AppRoutes.business,       page: () => const BusinessView(),            binding: BusinessBinding()),
   GetPage(name: AppRoutes.propertyDetail, page: () => const PropertyDetailView(),     binding: PropertyDetailBinding()),
   GetPage(name: AppRoutes.kyc,            page: () => const KycView(),               binding: KycBinding()),
+  GetPage(name: AppRoutes.savings,        page: () => const SavingsView(), binding: SavingsBinding()),
   GetPage(name: AppRoutes.myPlans,        page: () => const MyPlansView()),
   GetPage(name: AppRoutes.wishlist,       page: () => const WishlistView(), binding: BindingsBuilder(() {
     if (!Get.isRegistered<WishlistRepository>()) Get.lazyPut<WishlistRepository>(() => WishlistRepository());

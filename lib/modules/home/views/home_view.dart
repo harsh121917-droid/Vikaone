@@ -1,3 +1,4 @@
+import '../widgets/home_savings_section.dart';
 import '../../properties/controllers/properties_controller.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
@@ -139,6 +140,9 @@ class HomeView extends GetView<HomeController> {
                   );
                 }),
                 const SizedBox(height: 28),
+                const SizedBox(height: 28),
+                // ── Property Savings SIP Section ──
+                HomeSavingsSection(controller: controller, dark: dark),
                 const SizedBox(height: 28),
                 // ── YouTube Video Spotlights & Tours Slider ──
                 _HomeVideoSliderSection(controller: controller, dark: dark),

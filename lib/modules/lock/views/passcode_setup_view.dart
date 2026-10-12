@@ -257,7 +257,13 @@ class _LockScreenViewState extends State<LockScreenView>
 
   void _unlock() {
     LockService.to.setUnlocking(false);
-    if (mounted) Get.offAllNamed(AppRoutes.home);
+    LockService.to.clearLockSuppression();
+    if (!mounted) return;
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    } else {
+      Get.offAllNamed(AppRoutes.home);
+    }
   }
 
   void _onKey(String k) {
